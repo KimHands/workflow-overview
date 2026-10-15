@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>스킬 라이브러리</title>
+<style>
+  /* 레이아웃: 상단 고정 검색 바 + 카테고리별 스킬 그리드. 좌측 정렬, 개발자 참조용 대시보드 */
+  :root {
+    --bg: #f4f3ef;
+    --surface: #ffffff;
+    --fg: #23221d;
+    --muted: #6f6c62;
+    --faint: #a8a498;
+    --line: #e2e0d8;
+    --accent: #b5651d;
+    --accent-soft: #f0e3d4;
+    --ns: #4a6b6f;
+    --radius: 10px;
+    --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1a1916;
+      --surface: #23221e;
+      --fg: #eceae2;
+      --muted: #a39f93;
+      --faint: #6b6859;
+      --line: #322f29;
+      --accent: #e0914a;
+      --accent-soft: #3a2e1f;
+      --ns: #7fa6ab;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1a1916;
+    --surface: #23221e;
+    --fg: #eceae2;
+    --muted: #a39f93;
+    --faint: #6b6859;
+    --line: #322f29;
+    --accent: #e0914a;
+    --accent-soft: #3a2e1f;
+    --ns: #7fa6ab;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--sans);
+    line-height: 1.5;
+    margin: 0;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; padding-inline: 20px; }
+
+  header.top {
+    position: sticky;
+    top: env(safe-area-inset-top, 0px);
+    z-index: 10;
+    background: color-mix(in srgb, var(--bg) 92%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line);
+    padding-block: 16px;
+  }
+  .masthead { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
+  h1 {
+    font-size: 1.5rem; font-weight: 600; margin: 0; letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+  h1 .dot { color: var(--accent); }
+  .tally { font-family: var(--mono); font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
+  .tally b { color: var(--fg); font-weight: 600; }
+
+  .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  #q {
+    flex: 1; min-width: 0;
+    font-family: var(--mono); font-size: 0.9rem;
+    padding: 9px 13px;
+    background: var(--surface);
+    color: var(--fg);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+  }
+  #q:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+  #q::placeholder { color: var(--faint); }
+  .count-live { font-family: var(--mono); font-size: 0.78rem; color: var(--muted); white-space: nowrap; }
+
+  main { padding-block: 24px 60px; }
+  section.cat { margin-bottom: 34px; scroll-margin-top: 140px; }
+  .cat-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; padding-bottom: 6px; border-bottom: 2px solid var(--line); }
+  .cat-head h2 { font-size: 1.05rem; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+  .cat-head .ns { font-family: var(--mono); font-size: 0.72rem; color: var(--ns); padding: 2px 7px; border: 1px solid var(--line); border-radius: 20px; }
+  .cat-head .cnt { font-family: var(--mono); font-size: 0.75rem; color: var(--faint); margin-left: auto; }
+  .cat-note { font-size: 0.82rem; color: var(--muted); margin: 8px 0 12px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 10px; }
+  .skill {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 11px 13px;
+  }
+  .skill .name { font-family: var(--mono); font-size: 0.86rem; font-weight: 500; color: var(--fg); word-break: break-word; }
+  .skill .name .slash { color: var(--accent); }
+  .skill .desc { font-size: 0.8rem; color: var(--muted); margin-top: 3px; }
+
+  .empty { color: var(--faint); font-family: var(--mono); font-size: 0.85rem; padding: 40px 0; text-align: center; display: none; }
+
+  footer { border-top: 1px solid var(--line); padding-block: 18px; font-size: 0.76rem; color: var(--faint); }
+  footer code { font-family: var(--mono); color: var(--muted); }
+
+  mark { background: var(--accent-soft); color: var(--fg); border-radius: 3px; padding: 0 1px; }
+  @media (max-width: 440px) {
+    .wrap { padding-inline: 16px; }
+    .grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+
+<header class="top">
+  <div class="wrap">
+    <div class="masthead">
+      <h1>스킬 라이브러리<span class="dot">.</span></h1>
+      <div class="tally"><b id="total">0</b>개 · <b id="catcount">0</b>개 묶음</div>
+    </div>
+    <div class="controls">
+      <input id="q" type="search" placeholder="스킬 검색 — 이름·설명·묶음 (예: pptx, 보안, vercel)" autocomplete="off" aria-label="스킬 검색">
+      <span class="count-live" id="shown"></span>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <div id="root"></div>
+    <p class="empty" id="empty">일치하는 스킬이 없습니다.</p>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    이번 세션에 로드된 스킬 기준 · 호출은 <code>/스킬명</code> 또는 Skill 도구 · 네임스페이스 스킬은 <code>plugin:skill</code> 형식
+  </div>
+</footer>
+
+<script>
+  const DATA = [
+    {
+      cat: "핵심 / 빌트인", ns: "claude-code", note: "Claude Code 기본 제공. 설정·리뷰·아티팩트·반복 작업.",
+      items: [
+        ["code-review", "현재 diff·PR·브랜치를 버그 중심으로 리뷰 (effort 조절)"],
+        ["simplify", "변경된 코드의 재사용·단순화·효율 정리 (버그 탐색 X)"],
+        ["security-review", "보안 관점 코드 리뷰"],
+        ["init", "CLAUDE.md 초기 생성 (코드베이스 문서화)"],
+        ["run", "프로젝트 앱을 실제로 띄워 변경 확인·스크린샷"],
+        ["loop", "프롬프트·슬래시 명령을 주기적으로 반복 실행"],
+        ["schedule", "cron으로 도는 클라우드 에이전트(루틴) 관리"],
+        ["update-config", "settings.json 설정·권한·훅·환경변수 구성"],
+        ["keybindings-help", "키보드 단축키 커스터마이즈"],
+        ["fewer-permission-prompts", "트랜스크립트 분석해 권한 허용목록 자동 추가"],
+        ["claude-api", "Claude API·SDK 레퍼런스 (모델 id·가격·캐싱 등)"],
+        ["plugin-authoring", "Claude Code용 플러그인(훅·패널·상태줄) 작성"],
+        ["dataviz", "차트·그래프·대시보드 만들기 전 필수 디자인 가이드"],
+        ["artifact-design", "아티팩트 작성 전 디자인 기본·페이지 계약"],
+        ["artifact-diagramming", "아티팩트용 다이어그램 작도 know-how"],
+        ["artifact-capabilities", "게시된 아티팩트의 런타임 기능(DB·상태 공유 등)"],
+        ["frontend-design", "새 UI 만들 때 독창적·의도적 비주얼 디자인 가이드"],
+        ["web-design-guidelines", "UI 코드의 접근성·폼·모션 가이드라인 점검"],
+        ["workflow-authoring", "멀티에이전트 Workflow 스크립트 작성 레퍼런스"],
+      ]
+    },
+    {
+      cat: "gstack — 개발 워크플로우", ns: "gstack", note: "코딩·배포·QA·리뷰 전주기를 덮는 대형 스위트.",
+      items: [
+        ["gstack", "gstack 스위트 라우터"],
+        ["_gstack-command", "gstack 스위트 라우터 (명령형)"],
+        ["cso", "보안 감사 — 정적 탐지 + 재현·수정 후보"],
+        ["setup-gbrain", "gbrain(코드 기억) CLI·MCP 설치·초기화"],
+        ["sync-gbrain", "gbrain을 레포 최신 상태로 동기화"],
+        ["spec", "모호한 의도를 5단계로 실행 가능한 스펙으로"],
+        ["investigate", "근본원인 추적형 체계적 디버깅"],
+        ["qa", "브라우저·API·CLI·잡·워커·웹훅 버그 수정"],
+        ["qa-only", "같은 버그를 수정 없이 보고만"],
+        ["review", "랜딩 전 PR 리뷰"],
+        ["ship", "테스트·diff 리뷰·버전업·CHANGELOG·커밋·푸시·PR"],
+        ["land-and-deploy", "랜드 & 배포 워크플로우"],
+        ["setup-deploy", "/land-and-deploy용 배포 설정 구성"],
+        ["canary", "배포 후 카나리 모니터링"],
+        ["benchmark", "성능 회귀 탐지"],
+        ["benchmark-models", "gstack 스킬 교차모델 벤치마크"],
+        ["health", "코드 품질 대시보드"],
+        ["retro", "주간 엔지니어링 회고"],
+        ["test-audit", "저가치·중복 테스트와 유지되는 테스트전용 코드 탐색"],
+        ["document-generate", "기능·모듈·프로젝트 문서 신규 생성"],
+        ["document-release", "릴리스 문서 감사"],
+        ["make-pdf", "마크다운을 출판 품질 PDF로"],
+        ["diagram", "영어 설명→다이어그램 (excalidraw·SVG·PNG)"],
+        ["deslop-shared-libs", "최근 작업에서 공유코드 추출 후보 탐색"],
+        ["careful", "파괴적 명령 안전 가드레일"],
+        ["guard", "풀 안전모드 (파괴 경고 + 디렉터리 편집 제한)"],
+        ["freeze", "세션 동안 특정 디렉터리로만 편집 제한"],
+        ["unfreeze", "freeze 경계 해제"],
+        ["context-save", "작업 컨텍스트 저장"],
+        ["context-restore", "저장한 컨텍스트 복원"],
+        ["learn", "프로젝트 학습사항 관리"],
+        ["office-hours", "YC 오피스아워 (2모드)"],
+        ["gstack-upgrade", "gstack 최신 버전 업그레이드"],
+      ]
+    },
+    {
+      cat: "gstack — 디자인·브라우저", ns: "gstack", note: "디자인 QA·컨설팅·실브라우저 자동화.",
+      items: [
+        ["design-consultation", "제품 이해→디자인 시스템 제안→폰트·색 프리뷰"],
+        ["design-html", "Pretext 네이티브 HTML/CSS 최종 생성"],
+        ["design-review", "디자이너 시선 QA (불일치·AI 슬롭 탐지·수정)"],
+        ["design-shotgun", "AI 디자인 변형 다수 생성·비교보드·피드백"],
+        ["browse", "Aside로 실제 브라우저 조작 (열기·클릭·스샷·콘솔)"],
+        ["scrape", "로그인된 세션으로 웹페이지 데이터 추출"],
+        ["skillify", "최근 성공한 /scrape 흐름을 영구 브라우저 스킬로"],
+        ["connect-chrome", "GStack 브라우저(사이드바 확장 내장) 실행"],
+        ["open-gstack-browser", "GStack 브라우저 실행 (별칭)"],
+        ["setup-browser-cookies", "실 브라우저 쿠키를 헤드리스 세션으로 가져오기"],
+        ["pair-agent", "원격 AI 에이전트를 내 브라우저와 페어링"],
+      ]
+    },
+    {
+      cat: "gstack — iOS", ns: "gstack", note: "SwiftUI 앱 실기기 QA·디버그 브리지.",
+      items: [
+        ["ios-qa", "실기기 iOS QA (SwiftUI)"],
+        ["ios-fix", "자율 iOS 버그 수정기"],
+        ["ios-design-review", "실기기 iOS 비주얼 디자인 감사"],
+        ["ios-sync", "디버그 브리지를 상위 gstack 템플릿에 재생성"],
+        ["ios-clean", "DebugBridge SPM 패키지·#if DEBUG 배선 제거"],
+      ]
+    },
+    {
+      cat: "gstack — 플랜 리뷰", ns: "gstack", note: "실행 전 플랜을 역할별 시선으로 점검.",
+      items: [
+        ["autoplan", "CEO·디자인·엔지니어·DX 리뷰를 순차 자동 실행"],
+        ["plan-ceo-review", "창업자 모드 플랜 리뷰"],
+        ["plan-eng-review", "엔지니어링 매니저 모드 플랜 리뷰"],
+        ["plan-design-review", "디자이너 시선 플랜 리뷰 (대화형)"],
+        ["plan-devex-review", "개발자경험 플랜 리뷰 (대화형)"],
+        ["devex-review", "라이브 개발자경험 감사"],
+        ["landing-report", "워크스페이스 인식 ship 큐 대시보드 (읽기전용)"],
+        ["plan-tune", "질문 민감도·개발자 심리 자가튜닝"],
+      ]
+    },
+    {
+      cat: "Superpowers — 프로세스", ns: "superpowers", note: "브레인스토밍·TDD·디버깅 등 작업 방식 프레임워크.",
+      items: [
+        ["using-superpowers", "스킬 찾고 쓰는 법 — 모든 대화 시작 시"],
+        ["brainstorming", "기능·컴포넌트 만들기 전 의도·요구·설계 탐색"],
+        ["systematic-debugging", "버그·테스트실패 시 수정 제안 전 체계적 디버깅"],
+        ["test-driven-development", "구현 전 TDD로 기능·버그픽스"],
+        ["writing-plans", "멀티스텝 작업 스펙을 플랜으로 (코드 전)"],
+        ["executing-plans", "현 세션에서 직접 플랜 실행"],
+        ["subagent-driven-development", "독립 작업 플랜을 서브에이전트로 실행"],
+        ["dispatching-parallel-agents", "병렬 에이전트 디스패치"],
+        ["requesting-code-review", "코드 리뷰 요청"],
+        ["receiving-code-review", "코드 리뷰 피드백 수용 (검증 우선)"],
+        ["verification-before-completion", "완료 선언 전 검증"],
+        ["finishing-a-development-branch", "구현 완료 후 통합 방식 결정"],
+        ["using-git-worktrees", "격리 작업공간 확보 (worktree)"],
+        ["writing-skills", "스킬 생성·편집·검증"],
+        ["diagnosing-superpowers", "superpowers 진단"],
+      ]
+    },
+    {
+      cat: "humanize-korean — 한글 윤문", ns: "humanize-korean", note: "AI가 쓴 한글의 'AI 티'를 사람 글처럼. 내용 보존.",
+      items: [
+        ["humanize-korean", "AI 티 10대 패턴 탐지·분류·자연스러운 한국어 재작성"],
+        ["humanize-korean-formal", "보고서·공문서·논문 격식체 — 비유·구어·1인칭 정리"],
+      ]
+    },
+    {
+      cat: "kesekit — KISA 보안점검", ns: "kesekit", note: "주요정보통신기반시설·AI·로봇·우주·제로트러스트 평가.",
+      items: [
+        ["kesekit-start", "KISA 기반 보안 취약점 분석평가 (영문 트리거)"],
+        ["kesekit-start-ko", "KISA 기반 보안 취약점 분석평가 (한글)"],
+        ["kesekit-check", "배포 전 보안 컴플라이언스 체크리스트"],
+        ["kesekit-check-ko", "배포 전 컴플라이언스 체크 (한글)"],
+        ["kesekit-fix", "취약점 자동 수정·하드닝 스크립트 생성"],
+        ["kesekit-fix-ko", "취약점 수정·하드닝 (한글)"],
+        ["kesekit-guide", "kesekit 가이드"],
+        ["kesekit-guide-ko", "kesekit 가이드 (한글)"],
+      ]
+    },
+    {
+      cat: "정적분석 (static-analysis)", ns: "static-analysis", note: "CodeQL·Semgrep 스캔.",
+      items: [
+        ["semgrep", "Semgrep 보안 스캔 (룰셋 승인 게이트 포함)"],
+        ["semgrep-scan", "Semgrep 스캔 엔드투엔드 (승인 없이)"],
+        ["codeql", "CodeQL 분석"],
+        ["codeql-build", "CodeQL 데이터베이스 빌드 (빌드법 사다리)"],
+        ["sarif-parsing", "SARIF 결과 파싱"],
+      ]
+    },
+    {
+      cat: "codex — OpenAI 교차검증", ns: "codex", note: "다른 벤더(Codex)로 조사·수정·검증 위임.",
+      items: [
+        ["codex", "OpenAI Codex CLI 래퍼 (3모드)"],
+        ["rescue", "조사·수정·후속 작업을 Codex 서브에이전트로 위임"],
+        ["setup", "로컬 Codex CLI 준비 확인·리뷰 게이트 토글"],
+        ["codex-cli-runtime", "codex-companion 런타임 호출 계약"],
+        ["codex-result-handling", "Codex 결과 처리"],
+        ["gpt-5-4-prompting", "GPT 프롬프팅 가이드"],
+      ]
+    },
+    {
+      cat: "문서·오피스 (anthropic-skills)", ns: "anthropic-skills", note: "PPTX·DOCX·XLSX·PDF·docs 생성·편집.",
+      items: [
+        ["docs", "공유·편집·코멘트 가능한 문서 (기본 문서 타입)"],
+        ["docx", "Word 문서 생성·편집"],
+        ["pptx", "PowerPoint 생성·편집"],
+        ["xlsx", "스프레드시트 열기·편집·생성·변환"],
+        ["pdf", "PDF 작업"],
+        ["likelion-pptx", "라이언 PPTX"],
+        ["wrtn-pptx", "뤼튼 PPTX"],
+        ["wrtn-pptx-visualize", "뤼튼 PPTX 시각화"],
+        ["wrtn-pptx-aitext-fix", "뤼튼 PPTX AI텍스트 교정"],
+        ["skill-creator", "새 스킬 생성 도우미"],
+        ["import-memory", "메모리 임포트"],
+        ["deep-research", "심층 리서치"],
+        ["google-workspace", "구글 워크스페이스 연동"],
+        ["email-translate", "이메일 번역"],
+        ["wiki-conversation", "위키 대화"],
+        ["morning", "모닝 브리핑"],
+        ["built-in-browser", "빌트인 브라우저"],
+        ["chrome-browser", "크롬 브라우저 제어"],
+        ["computer-use", "컴퓨터 유즈 (GUI 제어)"],
+      ]
+    },
+    {
+      cat: "문서 형식 전용 (pptx·hwpx)", ns: "—", note: "템플릿 레이아웃 기반 덱 · 한글(.hwpx) 안전 편집.",
+      items: [
+        ["pptx-from-layouts", "마크다운 아웃라인→실 슬라이드마스터 레이아웃 덱"],
+        ["academic-pptx-skill", "학술 발표(학회·논문심사·세미나) 내용·구조 설계"],
+        ["hwpx-edit", ".hwpx(한글) 손상 없이 편집 — 메모·수식·글자수"],
+      ]
+    },
+    {
+      cat: "Vercel — 명령·셋업", ns: "vercel", note: "배포·환경·상태·부트스트랩.",
+      items: [
+        ["bootstrap", "레포를 Vercel 리소스에 연결·프리플라이트"],
+        ["deploy", "배포"],
+        ["env", "환경변수"],
+        ["status", "현재 Vercel 프로젝트 상태"],
+        ["verification", "검증"],
+      ]
+    },
+    {
+      cat: "Vercel — 레퍼런스", ns: "vercel", note: "프레임워크·AI·인프라 문서 스킬 (필요 시 로드).",
+      items: [
+        ["nextjs", "Next.js"],
+        ["next-upgrade", "Next.js 업그레이드"],
+        ["next-forge", "next-forge"],
+        ["next-cache-components", "Next 캐시 컴포넌트"],
+        ["react-best-practices", "React 베스트 프랙티스"],
+        ["ai-sdk", "AI SDK"],
+        ["ai-gateway", "AI Gateway"],
+        
+        ["build-agents", "에이전트 빌드"],
+        ["vercel-agent", "Vercel 에이전트"],
+        ["chat-sdk", "Chat SDK"],
+        ["auth", "인증"],
+        ["create-a-backend", "백엔드 생성"],
+        ["vercel-functions", "Vercel Functions"],
+        ["vercel-storage", "Vercel 스토리지"],
+        ["vercel-sandbox", "Vercel 샌드박스"],
+        ["vercel-firewall", "방화벽"],
+        ["vercel-cli", "Vercel CLI"],
+        ["vercel-connect", "Vercel Connect"],
+        ["vercel-services", "Vercel 서비스"],
+        ["cdn-caching", "CDN 캐싱"],
+        ["runtime-cache", "런타임 캐시"],
+        ["routing-middleware", "라우팅·미들웨어"],
+        ["microfrontends", "마이크로프론트엔드"],
+        ["flags-sdk", "Flags SDK"],
+        ["queues", "큐"],
+        ["workflow", "워크플로우"],
+        ["marketplace", "마켓플레이스"],
+        ["custom-metrics", "커스텀 메트릭"],
+        ["env-vars", "환경변수 (레퍼런스)"],
+        ["deployments-cicd", "배포·CI/CD"],
+        ["access-protected-vercel-deployment", "보호된 배포 접근"],
+        ["turbopack", "Turbopack"],
+        ["shadcn", "shadcn"],
+        ["eve", "eve"],
+        ["knowledge-update", "지식 업데이트"],
+      ]
+    },
+    {
+      cat: "Orca — 멀티에이전트·GUI", ns: "orca", note: "worktree·터미널·임베디드 브라우저·오케스트레이션.",
+      items: [
+        ["orca-cli", "Orca worktree·터미널·브라우저·아티팩트 조작"],
+        ["orchestration", "감독형 Orca 워커 조정 (스레드·DAG·게이트)"],
+        ["computer-use", "보이는 로컬 앱 창 GUI 제어 (접근성 트리·클릭)"],
+      ]
+    },
+    {
+      cat: "미디어", ns: "—", note: "영상 이해(watch 플러그인) · 이미지 생성(로컬 gptimg).",
+      items: [
+        ["watch", "영상(URL·로컬) 다운·프레임 추출·자막으로 내용 Q&A"],
+        ["gpt-image", "웹 작업 중 AI 이미지 생성 제안 (로컬 gptimg, 승인 후)"],
+      ]
+    },
+  ];
+
+  const root = document.getElementById("root");
+  let total = 0;
+  DATA.forEach((c, ci) => {
+    total += c.items.length;
+    const sec = document.createElement("section");
+    sec.className = "cat";
+    sec.dataset.cat = c.cat + " " + c.ns;
+    const nsTag = c.ns && c.ns !== "—" ? `<span class="ns">${c.ns}</span>` : "";
+    sec.innerHTML = `
+      <div class="cat-head">
+        <h2>${c.cat}</h2>${nsTag}
+        <span class="cnt">${c.items.length}</span>
+      </div>
+      ${c.note ? `<p class="cat-note">${c.note}</p>` : ""}
+      <div class="grid"></div>`;
+    const grid = sec.querySelector(".grid");
+    c.items.forEach(([name, desc]) => {
+      const el = document.createElement("div");
+      el.className = "skill";
+      el.dataset.search = (name + " " + desc + " " + c.cat + " " + c.ns).toLowerCase();
+      el.dataset.name = name;
+      el.dataset.desc = desc;
+      el.innerHTML = `<div class="name"><span class="slash">/</span><span class="nm">${name}</span></div><div class="desc">${desc}</div>`;
+      grid.appendChild(el);
+    });
+    root.appendChild(sec);
+  });
+
+  document.getElementById("total").textContent = total;
+  document.getElementById("catcount").textContent = DATA.length;
+
+  const q = document.getElementById("q");
+  const shown = document.getElementById("shown");
+  const empty = document.getElementById("empty");
+
+  function esc(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+  function hl(el, term){
+    const nm = el.dataset.name, ds = el.dataset.desc;
+    if(!term){ el.querySelector(".nm").textContent = nm; el.querySelector(".desc").textContent = ds; return; }
+    const re = new RegExp("("+esc(term)+")","ig");
+    el.querySelector(".nm").innerHTML = nm.replace(re,"<mark>$1</mark>");
+    el.querySelector(".desc").innerHTML = ds.replace(re,"<mark>$1</mark>");
+  }
+
+  function filter(){
+    const term = q.value.trim().toLowerCase();
+    let visible = 0;
+    document.querySelectorAll("section.cat").forEach(sec => {
+      let secVis = 0;
+      sec.querySelectorAll(".skill").forEach(el => {
+        const match = !term || el.dataset.search.includes(term);
+        el.hidden = !match;
+        if(match){ secVis++; visible++; hl(el, term); }
+      });
+      sec.hidden = secVis === 0;
+    });
+    empty.style.display = visible === 0 ? "block" : "none";
+    shown.textContent = term ? `${visible}개 표시` : "";
+  }
+  q.addEventListener("input", filter);
+</script>
+
+</body>
+</html>

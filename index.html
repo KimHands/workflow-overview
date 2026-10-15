@@ -1,0 +1,1060 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>김종건 운용 체계</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  /* 레이아웃: 세로 스크롤 설명서. 상단 히어로 → 코어 루프(모션) → 5계층 → 라우팅 → 검증그래프 → 컨텍스트 → 기억 → 능력 → 예시 → 원칙.
+     등장인물을 색으로 고정: 사람=ink, Claude=gold, Codex=teal, 로컬LLM=green, 게이트/위험=coral. 모든 도식에서 동일. */
+  :root {
+    --paper: #f3f1ec;
+    --card: #fbfaf7;
+    --ink: #1c1b18;
+    --fg: #26241f;
+    --muted: #6b6659;
+    --faint: #a49e90;
+    --line: #e0ddd3;
+    --line-strong: #cbc7ba;
+
+    --human: #5b5750;      /* 사람 */
+    --claude: #c6791f;     /* Claude (주 악센트) */
+    --claude-soft: #f3e4cf;
+    --codex: #1f7a84;      /* Codex (다른 벤더 검증) */
+    --codex-soft: #d6ecee;
+    --local: #4f8a3d;      /* 로컬 LLM */
+    --local-soft: #dcecd3;
+    --danger: #c0442e;     /* 안전 게이트·위험 */
+    --danger-soft: #f3dcd5;
+
+    --accent: var(--claude);
+    --radius: 12px;
+    --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: "IBM Plex Sans KR", system-ui, -apple-system, "Apple SD Gothic Neo", sans-serif;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #16150f; --card: #1f1d16; --ink: #f0ede3; --fg: #e7e3d7; --muted: #a8a293; --faint: #6c6757;
+      --line: #2e2b22; --line-strong: #413d31;
+      --human: #b4af9f; --claude: #e6a24e; --claude-soft: #3b2e1a;
+      --codex: #4fb6c0; --codex-soft: #123033; --local: #83c06a; --local-soft: #1c3016;
+      --danger: #e2735c; --danger-soft: #3a1c15;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #16150f; --card: #1f1d16; --ink: #f0ede3; --fg: #e7e3d7; --muted: #a8a293; --faint: #6c6757;
+    --line: #2e2b22; --line-strong: #413d31;
+    --human: #b4af9f; --claude: #e6a24e; --claude-soft: #3b2e1a;
+    --codex: #4fb6c0; --codex-soft: #123033; --local: #83c06a; --local-soft: #1c3016;
+    --danger: #e2735c; --danger-soft: #3a1c15;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--fg); font-family: var(--sans); line-height: 1.6; font-weight: 400; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1060px; margin: 0 auto; padding-inline: 22px; }
+  section { padding-block: 46px; border-top: 1px solid var(--line); }
+  h2 { font-size: clamp(1.4rem, 3.2vw, 2rem); font-weight: 700; letter-spacing: -0.02em; margin: 0 0 6px; text-wrap: balance; }
+  h3 { font-size: 1.05rem; font-weight: 600; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .lead { color: var(--muted); max-width: 62ch; margin: 0 0 28px; font-size: 1.02rem; }
+  .eyebrow { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); font-weight: 600; margin: 0 0 10px; }
+  p { margin: 0 0 14px; }
+  figure { margin: 0; overflow-x: auto; overflow-y: hidden; padding-bottom: 2px; }
+  figcaption { font-size: 0.82rem; color: var(--muted); margin-top: 10px; text-align: center; font-family: var(--mono); }
+  code { font-family: var(--mono); font-size: 0.88em; background: color-mix(in srgb, var(--ink) 7%, transparent); padding: 1px 5px; border-radius: 4px; }
+  .mono { font-family: var(--mono); }
+
+  /* ── 히어로 ── */
+  .hero { border-top: none; padding-block: clamp(46px, 9vw, 92px) 54px; position: relative; overflow: hidden; }
+  .hero-grid { position: absolute; inset: 0; background-image: radial-gradient(circle at 1px 1px, var(--line-strong) 1px, transparent 0); background-size: 26px 26px; opacity: 0.5; -webkit-mask-image: linear-gradient(180deg, #000, transparent 85%); mask-image: linear-gradient(180deg, #000, transparent 85%); }
+  .hero .wrap { position: relative; }
+  .hero h1 { font-size: clamp(2.1rem, 6.5vw, 4rem); font-weight: 700; letter-spacing: -0.035em; line-height: 1.02; margin: 0 0 18px; text-wrap: balance; }
+  .hero h1 .accent { color: var(--accent); }
+  .hero-sub { font-size: clamp(1rem, 2.4vw, 1.2rem); color: var(--muted); max-width: 60ch; margin: 0 0 26px; }
+  .hero-stats { display: flex; flex-wrap: wrap; gap: 10px; }
+  .stat { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 11px 15px; }
+  .stat b { font-family: var(--mono); font-size: 1.35rem; font-weight: 600; color: var(--ink); display: block; line-height: 1; }
+  .stat span { font-size: 0.76rem; color: var(--muted); }
+
+  /* 등장인물 레전드 */
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 26px; padding: 14px 16px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; }
+  .legend .li { display: inline-flex; align-items: center; gap: 7px; font-size: 0.85rem; font-weight: 500; }
+  .legend .sw { width: 13px; height: 13px; border-radius: 4px; flex: none; }
+  .legend .note { font-size: 0.75rem; color: var(--faint); font-weight: 400; }
+
+  /* ── 코어 루프 파이프라인 (모션) ── */
+  .pipe { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; position: relative; margin: 8px 0 6px; }
+  .stage { text-align: center; padding: 8px 6px; position: relative; }
+  .stage .orb { width: 54px; height: 54px; margin: 0 auto 10px; border-radius: 50%; display: grid; place-items: center; font-family: var(--mono); font-weight: 600; font-size: 1.2rem; border: 2px solid var(--st); color: var(--st); background: var(--card); position: relative; z-index: 2; }
+  .stage .who { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--st); font-weight: 600; }
+  .stage .lab { font-size: 0.92rem; font-weight: 600; margin-top: 2px; }
+  .stage .sub { font-size: 0.75rem; color: var(--muted); margin-top: 1px; }
+  .stage:not(:last-child)::after { content: ""; position: absolute; top: 35px; right: -8px; width: 16px; height: 2px; background: var(--line-strong); z-index: 1; }
+  .pipe-track { position: relative; height: 3px; background: var(--line); border-radius: 2px; margin: 4px 7% 0; overflow: hidden; }
+  .pipe-track .packet { position: absolute; top: -2.5px; left: 0; width: 46px; height: 8px; border-radius: 6px; background: linear-gradient(90deg, transparent, var(--claude), transparent); animation: run 5s cubic-bezier(.6,0,.4,1) infinite; }
+  .pipe-return { text-align: center; font-family: var(--mono); font-size: 0.74rem; color: var(--muted); margin-top: 14px; }
+  .pipe-return b { color: var(--accent); }
+  @keyframes run { 0% { left: -46px; } 100% { left: 100%; } }
+  .stage .orb { animation: glow 5s ease-in-out infinite; animation-delay: var(--d); }
+  @keyframes glow { 0%, 100% { box-shadow: 0 0 0 0 transparent; } 8%, 16% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--st) 22%, transparent); } }
+
+  /* ── 공통 카드 그리드 ── */
+  .cards { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  .cards > *, .card-b { min-width: 0; }
+  .card-b { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; border-left: 4px solid var(--edge, var(--line-strong)); }
+  .card-b h3 { display: flex; align-items: center; gap: 8px; }
+  .card-b .tag { font-family: var(--mono); font-size: 0.66rem; padding: 2px 7px; border-radius: 20px; font-weight: 600; letter-spacing: 0.04em; }
+  .card-b p { font-size: 0.88rem; color: var(--muted); margin: 6px 0 0; }
+  .card-b ul { margin: 8px 0 0; padding-left: 18px; font-size: 0.85rem; color: var(--muted); }
+  .card-b li { margin: 3px 0; }
+
+  /* 계층 스택 */
+  .layers { display: flex; flex-direction: column; gap: 8px; }
+  .layer { display: grid; grid-template-columns: 92px 1fr; align-items: stretch; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--card); }
+  .layer .lv { background: color-mix(in srgb, var(--ink) 5%, transparent); display: grid; place-items: center; font-family: var(--mono); font-weight: 600; color: var(--muted); font-size: 0.8rem; border-right: 1px solid var(--line); text-align: center; padding: 6px; }
+  .layer .body { padding: 13px 16px; }
+  .layer .body h3 { font-size: 0.98rem; }
+  .layer .body p { font-size: 0.85rem; color: var(--muted); margin: 3px 0 0; }
+  .layer .chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 9px; }
+  .chip { font-family: var(--mono); font-size: 0.72rem; padding: 2px 8px; border: 1px solid var(--line-strong); border-radius: 20px; color: var(--fg); background: var(--paper); }
+
+  /* 예시 워크스루 */
+  .walk { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px; margin-bottom: 14px; }
+  .walk > h3 { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .walk > h3 .mini { font-size: 0.78rem; font-weight: 400; color: var(--muted); font-family: var(--sans); }
+  .steps { list-style: none; counter-reset: s; margin: 14px 0 0; padding: 0; }
+  .steps li { counter-increment: s; position: relative; padding: 0 0 14px 40px; }
+  .steps li:not(:last-child)::before { content: ""; position: absolute; left: 13px; top: 24px; bottom: 0; width: 2px; background: var(--line-strong); }
+  .steps li .n { position: absolute; left: 0; top: 0; width: 27px; height: 27px; border-radius: 50%; display: grid; place-items: center; font-family: var(--mono); font-size: 0.8rem; font-weight: 600; background: var(--actor, var(--line-strong)); color: #fff; }
+  .steps li .st { font-weight: 600; font-size: 0.92rem; }
+  .steps li .st .by { font-family: var(--mono); font-size: 0.68rem; padding: 1px 6px; border-radius: 10px; margin-left: 6px; vertical-align: middle; }
+  .steps li .dt { font-size: 0.85rem; color: var(--muted); margin-top: 2px; }
+  .steps li .dt code { font-size: 0.82em; }
+
+  .callout { border: 1px solid var(--line); border-left: 4px solid var(--danger); background: var(--danger-soft); border-radius: 10px; padding: 14px 16px; margin: 20px 0 0; }
+  .callout h3 { color: var(--danger); font-size: 0.95rem; }
+  .callout p { font-size: 0.87rem; color: var(--fg); margin: 5px 0 0; }
+
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+  .two > * { min-width: 0; }
+  .layer .body { min-width: 0; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; max-width: 100%; }
+  svg.dia { display: block; width: 100%; height: auto; max-width: 100%; min-width: 480px; color: var(--fg); overflow: visible; }
+  .two svg.dia { min-width: 320px; }
+
+  footer { border-top: 1px solid var(--line); padding-block: 26px 48px; color: var(--faint); font-size: 0.8rem; }
+  footer a { color: var(--accent); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pipe-track .packet { animation: none; left: 30%; }
+    .stage .orb { animation: none; }
+  }
+  @media (max-width: 720px) {
+    .pipe { grid-template-columns: 1fr; gap: 6px; }
+    .stage { display: grid; grid-template-columns: 54px 1fr; text-align: left; align-items: center; gap: 12px; padding: 4px; }
+    .stage .orb { margin: 0; }
+    .stage:not(:last-child)::after { display: none; }
+    .pipe-track, .pipe-return { display: none; }
+    .two { grid-template-columns: 1fr; }
+    .layer { grid-template-columns: 64px 1fr; }
+  }
+  @media (max-width: 440px) { .wrap { padding-inline: 16px; } }
+
+  /* ── 탭 바 ── */
+  .tabbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: color-mix(in srgb, var(--paper) 92%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+  .tabbar .wrap { display: flex; gap: 4px; padding-block: 0; }
+  .tab { appearance: none; background: none; border: none; font-family: var(--sans); font-size: 0.94rem; font-weight: 600; color: var(--muted); padding: 15px 16px; cursor: pointer; border-bottom: 2.5px solid transparent; margin-bottom: -1px; display: inline-flex; align-items: center; gap: 8px; }
+  .tab:hover { color: var(--fg); }
+  .tab[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab .cnt { font-family: var(--mono); font-size: 0.72rem; font-weight: 600; background: color-mix(in srgb, var(--ink) 8%, transparent); color: var(--muted); padding: 1px 7px; border-radius: 20px; }
+  .tab[aria-selected="true"] .cnt { background: var(--claude-soft); color: var(--accent); }
+  .panel[hidden] { display: none; }
+  .tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+
+  /* ── 스킬 탭 ── */
+  .skill-search { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 54px); z-index: 15; background: var(--paper); padding-block: 14px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+  .skill-search .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  #sq { flex: 1; min-width: 0; font-family: var(--mono); font-size: 0.9rem; padding: 10px 14px; background: var(--card); color: var(--fg); border: 1px solid var(--line-strong); border-radius: 10px; }
+  #sq:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+  #sq::placeholder { color: var(--faint); }
+  #scount { font-family: var(--mono); font-size: 0.78rem; color: var(--muted); white-space: nowrap; }
+
+  .skill-cat { margin: 0 0 30px; scroll-margin-top: 120px; }
+  .skill-cat-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; padding-bottom: 7px; border-bottom: 2px solid var(--edge, var(--line-strong)); }
+  .skill-cat-head h3 { font-size: 1.08rem; font-weight: 700; margin: 0; letter-spacing: -0.01em; }
+  .skill-cat-head .ns { font-family: var(--mono); font-size: 0.7rem; color: var(--edge, var(--codex)); padding: 2px 8px; border: 1px solid var(--line); border-radius: 20px; }
+  .skill-cat-head .cnt { font-family: var(--mono); font-size: 0.75rem; color: var(--faint); margin-left: auto; }
+  .skill-cat-note { font-size: 0.85rem; color: var(--muted); margin: 9px 0 13px; }
+  .skill-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 9px; }
+  .skill-card { background: var(--card); border: 1px solid var(--line); border-radius: 9px; padding: 11px 13px; }
+  .skill-card .sn { font-family: var(--mono); font-size: 0.85rem; font-weight: 500; color: var(--fg); word-break: break-word; }
+  .skill-card .sn .slash { color: var(--accent); }
+  .skill-card .sd { font-size: 0.8rem; color: var(--muted); margin-top: 3px; line-height: 1.45; }
+  .skill-empty { display: none; text-align: center; color: var(--faint); font-family: var(--mono); padding: 44px 0; }
+
+  /* 플러그인 상세 카드 */
+  .plug-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; margin-bottom: 10px; }
+  .plug { background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--edge, var(--line-strong)); border-radius: 10px; padding: 14px 16px; }
+  .plug h4 { margin: 0 0 2px; font-size: 0.98rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .plug h4 .ns { font-family: var(--mono); font-size: 0.66rem; font-weight: 500; color: var(--muted); }
+  .plug .role { font-size: 0.72rem; font-family: var(--mono); color: var(--edge); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+  .plug p { font-size: 0.84rem; color: var(--muted); margin: 6px 0 0; }
+  .plug .key { font-size: 0.78rem; color: var(--fg); margin-top: 7px; }
+  .plug .key b { color: var(--edge); font-weight: 600; }
+
+  mark { background: var(--claude-soft); color: var(--fg); border-radius: 3px; padding: 0 1px; }
+  @media (max-width: 440px) {
+    .skill-grid, .plug-grid { grid-template-columns: 1fr; }
+    .tab { padding: 13px 11px; font-size: 0.88rem; }
+  }
+</style>
+</head>
+<body>
+
+
+<!-- ══════════ 히어로 ══════════ -->
+<header class="hero">
+  <div class="hero-grid" aria-hidden="true"></div>
+  <div class="wrap">
+    <p class="eyebrow">개인 AI 운용 체계 · 2026</p>
+    <h1>혼자서 AI 에이전트 여러 대를<br><span class="accent">공장처럼</span> 돌리는 법</h1>
+    <p class="hero-sub">Claude Code 하나를 "운영체제"로 삼고, 그 위에 폴더 규칙 · 작업 라우팅 · 교차검증 · 자동 기억을 얹었다. 핵심 아이디어 하나: <b>사람은 판단만 하고, 나머지는 역할이 정해진 모델들에게 넘긴다.</b></p>
+    <div class="hero-stats">
+      <div class="stat"><b>3</b><span>일하는 두뇌 (로컬·Claude·Codex)</span></div>
+      <div class="stat"><b>5</b><span>운용 계층</span></div>
+      <div class="stat"><b>11</b><span>MCP 커넥터</span></div>
+      <div class="stat"><b>10</b><span>플러그인 번들</span></div>
+      <div class="stat"><b>38</b><span>안전 게이트</span></div>
+      <div class="stat"><b>10</b><span>되돌리기 어려운 결정 기록(ADR)</span></div>
+    </div>
+
+    <div class="legend" role="img" aria-label="등장인물 색 범례: 사람은 회색, Claude는 금색, Codex는 청록, 로컬 LLM은 녹색, 안전 게이트는 주황빨강">
+      <span class="li"><span class="sw" style="background:var(--human)"></span>사람 <span class="note">판단·승인</span></span>
+      <span class="li"><span class="sw" style="background:var(--claude)"></span>Claude <span class="note">주력 실행</span></span>
+      <span class="li"><span class="sw" style="background:var(--codex)"></span>Codex <span class="note">다른 벤더 검증</span></span>
+      <span class="li"><span class="sw" style="background:var(--local)"></span>로컬 LLM <span class="note">작은·반복 작업</span></span>
+      <span class="li"><span class="sw" style="background:var(--danger)"></span>안전 게이트 <span class="note">위험 전환</span></span>
+    </div>
+    <p style="font-size:0.78rem;color:var(--faint);margin-top:12px">이 색은 아래 모든 도식에서 똑같이 쓰인다. 색만 봐도 "누가 하는 일인지" 알 수 있게 했다.</p>
+  </div>
+</header>
+
+<!-- ══════════ 탭 바 ══════════ -->
+<nav class="tabbar" role="tablist" aria-label="보기 전환">
+  <div class="wrap">
+    <button class="tab" id="t-flow" role="tab" aria-selected="true" aria-controls="tab-flow">워크플로우</button>
+    <button class="tab" id="t-skills" role="tab" aria-selected="false" aria-controls="tab-skills">스킬 · 플러그인 <span class="cnt" id="tab-skill-count">0</span></button>
+  </div>
+</nav>
+
+<!-- ══════════ 워크플로우 패널 ══════════ -->
+<div class="panel" id="tab-flow" role="tabpanel" aria-labelledby="t-flow">
+
+<!-- ══════════ 코어 루프 ══════════ -->
+<section>
+  <div class="wrap">
+    <p class="eyebrow">한 장으로 보는 전체</p>
+    <h2>모든 작업은 이 다섯 단계를 돈다</h2>
+    <p class="lead">무슨 일이든 — 발표자료든 커밋이든 보안점검이든 — 들어오면 아래 파이프라인을 탄다. 단계마다 <b>누가</b> 하는지가 정해져 있다(색으로 표시). 끝에서 되돌아오는 화살표가 이 체계의 전부다: 결과는 반드시 기록으로 남고, 그 기억이 다음 세션에 자동으로 주입된다.</p>
+
+    <figure>
+      <div class="pipe" role="img" aria-label="코어 루프 5단계: 사람이 의도를 정하고, 라우팅이 작업을 적절한 두뇌에 배분하고, 실행하고, 다른 벤더가 검증하고, 기억으로 기록된 뒤 다시 사람에게 돌아온다">
+        <div class="stage" style="--st:var(--human);--d:0s">
+          <div class="orb">①</div><div class="who">사람</div><div class="lab">의도·기준</div><div class="sub">무엇을·왜</div>
+        </div>
+        <div class="stage" style="--st:var(--claude);--d:1s">
+          <div class="orb">②</div><div class="who">하네스</div><div class="lab">라우팅</div><div class="sub">어느 두뇌로?</div>
+        </div>
+        <div class="stage" style="--st:var(--local);--d:2s">
+          <div class="orb">③</div><div class="who">로컬·Claude</div><div class="lab">실행</div><div class="sub">산출물 생성</div>
+        </div>
+        <div class="stage" style="--st:var(--codex);--d:3s">
+          <div class="orb">④</div><div class="who">Codex</div><div class="lab">검증</div><div class="sub">반박하라</div>
+        </div>
+        <div class="stage" style="--st:var(--danger);--d:4s">
+          <div class="orb">⑤</div><div class="who">사람</div><div class="lab">승인·기록</div><div class="sub">게이트 통과</div>
+        </div>
+      </div>
+      <div class="pipe-track" aria-hidden="true"><div class="packet"></div></div>
+      <div class="pipe-return" aria-hidden="true">↺ 기록(ADR·faillog·memory) → <b>다음 세션에 자동 주입</b> → 다시 ①</div>
+      <figcaption>작업 한 건이 흐르는 경로. 단계 색 = 담당. 되돌아오는 화살표가 "기억 루프"다.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ══════════ 5계층 ══════════ -->
+<section>
+  <div class="wrap">
+    <p class="eyebrow">구조</p>
+    <h2>5개 계층으로 쌓았다</h2>
+    <p class="lead">아래에서 위로 — 어디에 두나(폴더) → 무엇이 실행하나(하네스) → 누구에게 시키나(라우팅) → 무슨 능력으로(스킬·MCP) → 무엇이 남나(기억). 각 계층은 독립적이라 하나를 바꿔도 나머지가 안 흔들린다.</p>
+    <div class="layers">
+      <div class="layer">
+        <div class="lv" style="color:var(--claude)">L5<br>기억</div>
+        <div class="body">
+          <h3>무엇이 남는가 — 자동 축적 · 자동 미러</h3>
+          <p>세션마다 memory가 쌓이고(자동 주입), 종료 시 Obsidian 볼트로 단방향 미러. 되돌리기 어려운 결정은 ADR, 실패는 faillog 한 줄.</p>
+          <div class="chips"><span class="chip">memory/*.md</span><span class="chip">ADR 0001–0010</span><span class="chip">faillog.md</span><span class="chip">VibeSession 미러</span></div>
+        </div>
+      </div>
+      <div class="layer">
+        <div class="lv" style="color:var(--codex)">L4<br>능력</div>
+        <div class="body">
+          <h3>무슨 도구로 — 스킬 · MCP · 플러그인</h3>
+          <p>형식 규칙은 문서로, 기능은 스킬로. 외부 서비스는 MCP 커넥터로 붙인다. 규칙은 자동 주입, 형식 스킬은 명시 호출.</p>
+          <div class="chips"><span class="chip">plugins ×10</span><span class="chip">MCP ×11</span><span class="chip">skills ×179</span><span class="chip">domains/*.md</span></div>
+        </div>
+      </div>
+      <div class="layer">
+        <div class="lv" style="color:var(--local)">L3<br>라우팅</div>
+        <div class="body">
+          <h3>누구에게 시키나 — 3개의 두뇌</h3>
+          <p>작은·반복·대량 작업은 로컬 LLM으로(토큰 절약), 품질이 필요하면 Claude, 되돌리기 어려운 건 Codex로 교차검증. 아래 그림 참고.</p>
+          <div class="chips"><span class="chip">LM Studio :1234</span><span class="chip">qwen 7B / 30B</span><span class="chip">codex CLI</span></div>
+        </div>
+      </div>
+      <div class="layer">
+        <div class="lv" style="color:var(--claude)">L2<br>하네스</div>
+        <div class="body">
+          <h3>무엇이 실행하나 — Claude Code + 훅</h3>
+          <p>기본은 bypass(안 묻고 진행)지만 위험 명령 38개는 반드시 되묻는다. SessionStart 훅이 폴더 규칙을 경고하고, Stop 훅이 기억을 미러한다.</p>
+          <div class="chips"><span class="chip">bypassPermissions</span><span class="chip">ask ×38</span><span class="chip">session-guard.py</span><span class="chip">mirror-memory.sh</span></div>
+        </div>
+      </div>
+      <div class="layer">
+        <div class="lv" style="color:var(--human)">L1<br>폴더</div>
+        <div class="body">
+          <h3>어디에 두나 — 한 폴더 = 한 산출물</h3>
+          <p>마감 있는 건 Projects, 끝없는 건 Career, 미분류는 Inbox(2주), 운용 계층은 Ops(경로 불변). 폴더명은 ASCII·개명 금지 — memory가 경로에 묶여 있어서.</p>
+          <div class="chips"><span class="chip">~/Desktop/Projects</span><span class="chip">~/Desktop/Career</span><span class="chip">~/Desktop/Inbox</span><span class="chip">~/Ops</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 라우팅 ══════════ -->
+<section>
+  <div class="wrap">
+    <p class="eyebrow">L3 — 라우팅</p>
+    <h2>작업이 들어오면, 어느 두뇌로 보낼까</h2>
+    <p class="lead">전부 Claude한테 시키면 비싸고, 전부 로컬이면 품질이 안 난다. 그래서 작업 성격으로 나눈다. 핵심은 <b>검증만은 반드시 다른 벤더(Codex)</b>로 받는다는 것 — 같은 벤더 모델끼리는 편향을 공유하기 때문.</p>
+
+    <figure>
+      <svg class="dia" viewBox="0 0 760 300" role="img" aria-label="작업 라우팅 결정도. 작은 반복 대량 작업은 로컬 LLM으로, 어려운 디버깅 다중파일 설계는 Claude로, 되돌리기 어려운 변경의 검증은 Codex로 간다">
+        <!-- 입력 -->
+        <rect x="20" y="128" width="120" height="44" rx="9" fill="none" stroke="currentColor" stroke-width="1.6"/>
+        <text x="80" y="147" text-anchor="middle" font-size="13" font-weight="600" fill="currentColor">작업 발생</text>
+        <text x="80" y="163" text-anchor="middle" font-size="10.5" fill="var(--muted)">성격 판정</text>
+
+        <!-- 분기 질문 -->
+        <path d="M140 150 H190" stroke="currentColor" stroke-width="1.6" fill="none" marker-end="url(#ar)"/>
+        <circle cx="210" cy="150" r="7" fill="var(--muted)"/>
+
+        <!-- 로컬 -->
+        <path d="M217 150 C 250 150, 260 60, 300 60" stroke="var(--local)" stroke-width="1.8" fill="none" marker-end="url(#arL)"/>
+        <text x="258" y="86" font-size="10.5" fill="var(--local)" font-weight="500">작은·반복·대량</text>
+        <rect x="300" y="38" width="200" height="46" rx="9" fill="var(--local-soft)" stroke="var(--local)" stroke-width="1.6"/>
+        <text x="400" y="57" text-anchor="middle" font-size="13" font-weight="600" fill="var(--local)">로컬 LLM</text>
+        <text x="400" y="73" text-anchor="middle" font-size="10" fill="currentColor">커밋메시지·요약·이름짓기</text>
+
+        <!-- Claude -->
+        <path d="M217 150 H300" stroke="var(--claude)" stroke-width="1.8" fill="none" marker-end="url(#arC)"/>
+        <text x="258" y="142" font-size="10.5" fill="var(--claude)" font-weight="500">품질 필요</text>
+        <rect x="300" y="128" width="200" height="46" rx="9" fill="var(--claude-soft)" stroke="var(--claude)" stroke-width="1.6"/>
+        <text x="400" y="147" text-anchor="middle" font-size="13" font-weight="600" fill="var(--claude)">Claude</text>
+        <text x="400" y="163" text-anchor="middle" font-size="10" fill="currentColor">디버깅·다중파일·설계</text>
+
+        <!-- Codex -->
+        <path d="M217 150 C 250 150, 260 240, 300 240" stroke="var(--codex)" stroke-width="1.8" fill="none" marker-end="url(#arX)"/>
+        <text x="245" y="224" font-size="10.5" fill="var(--codex)" font-weight="500">되돌리기 어려움</text>
+        <rect x="300" y="218" width="200" height="46" rx="9" fill="var(--codex-soft)" stroke="var(--codex)" stroke-width="1.6"/>
+        <text x="400" y="237" text-anchor="middle" font-size="13" font-weight="600" fill="var(--codex)">Codex 검증</text>
+        <text x="400" y="253" text-anchor="middle" font-size="10" fill="currentColor">다른 벤더·적대적 리뷰</text>
+
+        <!-- 합류 → 사람 -->
+        <path d="M500 60 C 560 60, 560 150, 600 150" stroke="var(--local)" stroke-width="1.4" fill="none" opacity="0.6"/>
+        <path d="M500 150 H600" stroke="var(--claude)" stroke-width="1.4" fill="none" opacity="0.6"/>
+        <path d="M500 240 C 560 240, 560 150, 600 150" stroke="var(--codex)" stroke-width="1.4" fill="none" opacity="0.6" marker-end="url(#ar)"/>
+        <rect x="602" y="128" width="130" height="44" rx="9" fill="none" stroke="var(--human)" stroke-width="1.8"/>
+        <text x="667" y="147" text-anchor="middle" font-size="13" font-weight="600" fill="var(--human)">사람 판정</text>
+        <text x="667" y="163" text-anchor="middle" font-size="10.5" fill="var(--muted)">수용·기각</text>
+
+        <defs>
+          <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><polygon points="0 0, 9 4.5, 0 9" fill="currentColor"/></marker>
+          <marker id="arL" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><polygon points="0 0, 9 4.5, 0 9" fill="var(--local)"/></marker>
+          <marker id="arC" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><polygon points="0 0, 9 4.5, 0 9" fill="var(--claude)"/></marker>
+          <marker id="arX" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><polygon points="0 0, 9 4.5, 0 9" fill="var(--codex)"/></marker>
+        </defs>
+      </svg>
+      <figcaption>작업 성격 → 담당 두뇌. 세 경로 모두 마지막엔 사람 판정으로 합류한다.</figcaption>
+    </figure>
+
+    <div class="cards" style="margin-top:22px">
+      <div class="card-b" style="--edge:var(--local)">
+        <h3><span class="tag" style="background:var(--local-soft);color:var(--local)">LOCAL</span> 로컬 LLM</h3>
+        <p>LM Studio가 <code>localhost:1234</code>에 상시. 빠른 7B / 주력 30B. 토큰 안 쓰고 즉답.</p>
+        <ul><li><code>gitmsg</code> — 커밋 메시지 초안</li><li><code>llm</code> / <code>llm -f</code> — 요약·설명</li><li><code>explain</code> — 명령·코드 설명</li></ul>
+      </div>
+      <div class="card-b" style="--edge:var(--claude)">
+        <h3><span class="tag" style="background:var(--claude-soft);color:var(--claude)">CLAUDE</span> 주력 실행</h3>
+        <p>품질이 필요한 모든 것. 어려운 디버깅, 여러 파일에 걸친 변경, 설계, 그리고 검증 자체의 지휘.</p>
+        <ul><li>스킬·MCP를 실제로 호출하는 주체</li><li>로컬로 넘길 작은 작업을 먼저 가려냄</li></ul>
+      </div>
+      <div class="card-b" style="--edge:var(--codex)">
+        <h3><span class="tag" style="background:var(--codex-soft);color:var(--codex)">CODEX</span> 교차검증</h3>
+        <p>OpenAI 모델. <b>"동의하지 말고 반박하라"</b>로 호출. 자기검토는 검증으로 치지 않는다.</p>
+        <ul><li>스키마·마이그레이션·배포·삭제 전</li><li>설계 확정 직전 / 4시간+ 구현 완료 직전</li></ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 검증 그래프 ══════════ -->
+<section>
+  <div class="wrap">
+    <p class="eyebrow">L3 — 검증 그래프 (실제 스크립트)</p>
+    <h2>되돌리기 어려운 건 "그래프"로 검증한다</h2>
+    <p class="lead">명령 하나로 돈다: <code>graph-verify.sh &lt;대상&gt; "무엇을 검증"</code>. Codex가 읽기 전용으로 반박하면, 사람/Claude가 고치고 다시 검증 — 단 <b>최대 2라운드</b>. 검증은 무한히 새 지적을 만들어내므로 상한을 둔다. 무엇을 수용·기각할지는 사람 몫.</p>
+
+    <figure>
+      <svg class="dia" viewBox="0 0 720 250" role="img" aria-label="검증 그래프: 사람이 문제를 정의하고 Claude가 구현하면 Codex가 검증한다. 지적이 있으면 사람이 고쳐 최대 두 번 되돌아가고, 두 번을 넘기면 사람이 판정한 뒤 승인 게이트를 통과한다">
+        <!-- 노드들 -->
+        <g font-size="12.5" font-weight="600">
+          <rect x="18" y="100" width="118" height="46" rx="9" fill="none" stroke="var(--human)" stroke-width="1.8"/>
+          <text x="77" y="120" text-anchor="middle" fill="var(--human)">사람</text>
+          <text x="77" y="136" text-anchor="middle" font-size="10" font-weight="400" fill="var(--muted)">문제·기준</text>
+
+          <rect x="180" y="100" width="118" height="46" rx="9" fill="var(--claude-soft)" stroke="var(--claude)" stroke-width="1.8"/>
+          <text x="239" y="120" text-anchor="middle" fill="var(--claude)">Claude</text>
+          <text x="239" y="136" text-anchor="middle" font-size="10" font-weight="400" fill="currentColor">구현</text>
+
+          <rect x="342" y="100" width="118" height="46" rx="9" fill="var(--codex-soft)" stroke="var(--codex)" stroke-width="1.8"/>
+          <text x="401" y="120" text-anchor="middle" fill="var(--codex)">Codex</text>
+          <text x="401" y="136" text-anchor="middle" font-size="10" font-weight="400" fill="currentColor">read-only 반박</text>
+
+          <rect x="508" y="100" width="118" height="46" rx="9" fill="none" stroke="var(--human)" stroke-width="1.8"/>
+          <text x="567" y="120" text-anchor="middle" fill="var(--human)">사람 판정</text>
+          <text x="567" y="136" text-anchor="middle" font-size="10" font-weight="400" fill="var(--muted)">수용·기각</text>
+
+          <rect x="508" y="192" width="118" height="42" rx="9" fill="var(--danger-soft)" stroke="var(--danger)" stroke-width="1.8"/>
+          <text x="567" y="212" text-anchor="middle" fill="var(--danger)" font-size="12">승인 게이트</text>
+          <text x="567" y="227" text-anchor="middle" font-size="9.5" font-weight="400" fill="currentColor">배포·발송·삭제</text>
+        </g>
+
+        <!-- 전진 화살표 -->
+        <path d="M136 123 H180" stroke="currentColor" stroke-width="1.6" marker-end="url(#g1)"/>
+        <path d="M298 123 H342" stroke="currentColor" stroke-width="1.6" marker-end="url(#g1)"/>
+        <path d="M460 123 H508" stroke="currentColor" stroke-width="1.6" marker-end="url(#g1)" stroke-dasharray="1 0"/>
+        <text x="484" y="114" text-anchor="middle" font-size="9.5" fill="var(--muted)">상한 초과</text>
+
+        <!-- 루프백 (강조) -->
+        <path class="loopback" d="M401 100 C 401 54, 239 54, 239 100" stroke="var(--codex)" stroke-width="2.2" fill="none" marker-end="url(#g2)"/>
+        <text x="320" y="46" text-anchor="middle" font-size="11" fill="var(--codex)" font-weight="600">지적 있음 → 고치고 재검증 (최대 2회)</text>
+
+        <!-- 승인 게이트로 -->
+        <path d="M567 146 V192" stroke="var(--danger)" stroke-width="1.6" marker-end="url(#g3)"/>
+        <text x="620" y="172" font-size="9.5" fill="var(--danger)">통과 시</text>
+
+        <!-- exit3 메모 -->
+        <text x="401" y="176" text-anchor="middle" font-size="9.5" fill="var(--muted)">codex 없으면 exit 3 — "검증 미실행"(FIX와 구분)</text>
+
+        <defs>
+          <marker id="g1" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><polygon points="0 0, 9 4.5, 0 9" fill="currentColor"/></marker>
+          <marker id="g2" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><polygon points="0 0, 9 4.5, 0 9" fill="var(--codex)"/></marker>
+          <marker id="g3" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><polygon points="0 0, 9 4.5, 0 9" fill="var(--danger)"/></marker>
+        </defs>
+      </svg>
+      <figcaption>청록 곡선이 "루프백"이다 — 상한 2회. 빨강 노드(승인 게이트)는 사람만 통과시킨다.</figcaption>
+    </figure>
+
+    <div class="callout">
+      <h3>왜 상한을 2회로 묶나</h3>
+      <p>검증 모델은 멈추라고 하지 않으면 끝없이 새 지적을 만들어낸다. 그래서 라운드를 2회로 못박고, 넘기면 스크립트가 멈춰 사람에게 넘긴다. 또 하나 — <b>검증 가능한 주장은 동의하기 전에 직접 실측한다</b>: 실제로 Codex가 "키 충돌 위험"을 지적했지만 이 환경에선 0건이라, 설계는 유지하고 검사 항목으로만 편입했다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 컨텍스트 + 기억 ══════════ -->
+<section>
+  <div class="wrap">
+    <p class="eyebrow">L1·L5 — 컨텍스트와 기억</p>
+    <h2>규칙은 자동으로 주입되고, 기억은 자동으로 쌓인다</h2>
+    <p class="lead">이게 "혼자서도 안 무너지는" 핵심이다. 규칙을 외우지 않는다 — 문서가 매 세션 주입된다. 작업 내용을 메모하지 않는다 — 세션이 끝나면 기억이 저절로 미러된다.</p>
+    <div class="two">
+      <figure>
+        <svg class="dia" viewBox="0 0 360 290" role="img" aria-label="컨텍스트 주입: Ops의 AGENTS.md가 심링크로 전역 CLAUDE.md가 되어 모든 세션에 주입되고, 작업 종류에 따라 domains 문서가, 프로젝트에선 프로젝트 CLAUDE.md와 memory가 함께 주입된다">
+          <rect x="90" y="14" width="180" height="40" rx="8" fill="var(--claude-soft)" stroke="var(--claude)" stroke-width="1.6"/>
+          <text x="180" y="32" text-anchor="middle" font-size="12" font-weight="600" fill="var(--claude)">~/Ops/AGENTS.md</text>
+          <text x="180" y="46" text-anchor="middle" font-size="9.5" fill="currentColor">운용 규칙 (정본)</text>
+
+          <path d="M180 54 V84" stroke="currentColor" stroke-width="1.5" marker-end="url(#c1)"/>
+          <text x="196" y="72" font-size="9.5" fill="var(--muted)">심링크</text>
+
+          <rect x="90" y="84" width="180" height="36" rx="8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-dasharray="4 3"/>
+          <text x="180" y="106" text-anchor="middle" font-size="11.5" font-weight="500" fill="currentColor">~/.claude/CLAUDE.md</text>
+
+          <path d="M180 120 V150" stroke="currentColor" stroke-width="1.5" marker-end="url(#c1)"/>
+          <text x="258" y="138" font-size="9.5" fill="var(--muted)">모든 세션 주입</text>
+
+          <rect x="40" y="150" width="280" height="40" rx="8" fill="none" stroke="currentColor" stroke-width="1.6"/>
+          <text x="180" y="168" text-anchor="middle" font-size="12" font-weight="600" fill="currentColor">세션</text>
+          <text x="180" y="182" text-anchor="middle" font-size="9.5" fill="var(--muted)">+ 작업 종류별 domains/*.md</text>
+
+          <path d="M110 150 C 110 134, 70 134, 70 120" stroke="var(--muted)" stroke-width="1.2" fill="none" opacity="0.6"/>
+          <text x="40" y="116" font-size="9" fill="var(--muted)">deck·hwp·web·paper</text>
+
+          <path d="M180 190 V220" stroke="var(--local)" stroke-width="1.6" marker-end="url(#c2)"/>
+          <rect x="40" y="220" width="280" height="54" rx="8" fill="var(--local-soft)" stroke="var(--local)" stroke-width="1.6"/>
+          <text x="180" y="240" text-anchor="middle" font-size="11.5" font-weight="600" fill="var(--local)">프로젝트 세션</text>
+          <text x="180" y="256" text-anchor="middle" font-size="9.5" fill="currentColor">CLAUDE.md @import AGENTS.md</text>
+          <text x="180" y="269" text-anchor="middle" font-size="9.5" fill="currentColor">+ memory/*.md 자동 주입</text>
+
+          <defs>
+            <marker id="c1" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><polygon points="0 0, 8 4, 0 8" fill="currentColor"/></marker>
+            <marker id="c2" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><polygon points="0 0, 8 4, 0 8" fill="var(--local)"/></marker>
+          </defs>
+        </svg>
+        <figcaption>컨텍스트 주입 — 규칙은 외우지 않고 문서로 흐른다.</figcaption>
+      </figure>
+
+      <figure>
+        <svg class="dia" viewBox="0 0 360 290" role="img" aria-label="기억 미러 루프: 네이티브 memory가 원본이고, 세션 종료 시 Stop 훅이 10분 간격으로 Obsidian 볼트에 단방향 미러한다. 볼트 쪽 편집은 반영되지 않는다">
+          <rect x="30" y="30" width="150" height="56" rx="9" fill="var(--claude-soft)" stroke="var(--claude)" stroke-width="1.6"/>
+          <text x="105" y="52" text-anchor="middle" font-size="11.5" font-weight="600" fill="var(--claude)">memory/*.md</text>
+          <text x="105" y="67" text-anchor="middle" font-size="9.5" fill="currentColor">원본 (자동 기록)</text>
+          <text x="105" y="79" text-anchor="middle" font-size="9" fill="var(--muted)">~/.claude/projects/&lt;키&gt;</text>
+
+          <path d="M180 58 H280" stroke="var(--local)" stroke-width="2" marker-end="url(#m1)"/>
+          <text x="230" y="48" text-anchor="middle" font-size="10" fill="var(--local)" font-weight="600">단방향 미러</text>
+          <text x="230" y="74" text-anchor="middle" font-size="9" fill="var(--muted)">Stop 훅 · 10분 간격</text>
+
+          <rect x="280" y="30" width="56" height="56" rx="9" fill="var(--local-soft)" stroke="var(--local)" stroke-width="1.6"/>
+          <text x="308" y="54" text-anchor="middle" font-size="10" font-weight="600" fill="var(--local)">볼트</text>
+          <text x="308" y="68" text-anchor="middle" font-size="8.5" fill="currentColor">Obsidian</text>
+
+          <path d="M280 72 C 230 96, 180 96, 182 86" stroke="var(--danger)" stroke-width="1.5" fill="none" stroke-dasharray="4 3" marker-end="url(#m2)"/>
+          <text x="228" y="112" text-anchor="middle" font-size="9.5" fill="var(--danger)">✗ 역방향 편집 반영 안 됨</text>
+
+          <path d="M105 86 V128" stroke="currentColor" stroke-width="1.4" marker-end="url(#m3)"/>
+          <rect x="18" y="128" width="324" height="40" rx="8" fill="none" stroke="currentColor" stroke-width="1.4"/>
+          <text x="180" y="146" text-anchor="middle" font-size="11" font-weight="500" fill="currentColor">다음 세션에서 자동 주입 → 맥락 복원</text>
+          <text x="180" y="160" text-anchor="middle" font-size="9.5" fill="var(--muted)">"무엇을 하고 있었나"가 안 끊긴다</text>
+
+          <text x="18" y="196" font-size="10.5" font-weight="600" fill="currentColor">같이 쓰는 기록들</text>
+          <rect x="18" y="206" width="100" height="34" rx="7" fill="none" stroke="var(--line-strong)" stroke-width="1.3"/>
+          <text x="68" y="226" text-anchor="middle" font-size="10" fill="currentColor">ADR ×10</text>
+          <rect x="130" y="206" width="100" height="34" rx="7" fill="none" stroke="var(--line-strong)" stroke-width="1.3"/>
+          <text x="180" y="226" text-anchor="middle" font-size="10" fill="currentColor">faillog</text>
+          <rect x="242" y="206" width="100" height="34" rx="7" fill="none" stroke="var(--line-strong)" stroke-width="1.3"/>
+          <text x="292" y="226" text-anchor="middle" font-size="10" fill="currentColor">golden(은퇴)</text>
+
+          <text x="18" y="262" font-size="9" fill="var(--muted)">golden-set 회귀 루프는 천장효과(6/6 고정)로 2026-10-02 은퇴 → archive</text>
+
+          <defs>
+            <marker id="m1" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><polygon points="0 0, 9 4.5, 0 9" fill="var(--local)"/></marker>
+            <marker id="m2" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><polygon points="0 0, 8 4, 0 8" fill="var(--danger)"/></marker>
+            <marker id="m3" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><polygon points="0 0, 8 4, 0 8" fill="currentColor"/></marker>
+          </defs>
+        </svg>
+        <figcaption>기억 미러 — 원본은 하나, 볼트는 읽기용 사본. 경로가 곧 정체성이라 폴더 개명이 금지다.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 능력 인벤토리 ══════════ -->
+<section>
+  <div class="wrap">
+    <p class="eyebrow">L4 — 능력</p>
+    <h2>붙여둔 커넥터와 번들</h2>
+    <p class="lead">MCP는 외부 서비스로 나가는 문, 플러그인은 작업 방식 번들, 스킬은 개별 기능. 규칙 문서(domains)는 자동 주입, 형식 스킬은 필요할 때 명시 호출.</p>
+    <div class="cards">
+      <div class="card-b" style="--edge:var(--codex)">
+        <h3>MCP 커넥터 <span class="tag" style="background:var(--codex-soft);color:var(--codex)">×11</span></h3>
+        <div class="chips" style="margin-top:8px"><span class="chip">Claude Docs</span><span class="chip">Gmail</span><span class="chip">Calendar</span><span class="chip">Drive</span><span class="chip">Todoist</span><span class="chip">Notion</span><span class="chip">Figma</span><span class="chip">Playwright</span><span class="chip">Vercel</span><span class="chip">context7</span><span class="chip">TickTick</span></div>
+      </div>
+      <div class="card-b" style="--edge:var(--claude)">
+        <h3>플러그인 번들 <span class="tag" style="background:var(--claude-soft);color:var(--claude)">×10</span></h3>
+        <div class="chips" style="margin-top:8px"><span class="chip">gstack</span><span class="chip">superpowers</span><span class="chip">anthropic-skills</span><span class="chip">vercel</span><span class="chip">codex</span><span class="chip">kesekit(보안)</span><span class="chip">static-analysis</span><span class="chip">humanize-korean</span><span class="chip">frontend-design</span><span class="chip">watch</span></div>
+      </div>
+      <div class="card-b" style="--edge:var(--human)">
+        <h3>규칙 문서 (domains)</h3>
+        <p>형식별 규칙 — 작업 시 해당 파일을 먼저 읽는다.</p>
+        <div class="chips" style="margin-top:8px"><span class="chip">deck.md</span><span class="chip">hwp.md</span><span class="chip">web.md</span><span class="chip">paper.md</span><span class="chip">review.md</span><span class="chip">todoist.md</span></div>
+      </div>
+    </div>
+    <p style="font-size:0.84rem;color:var(--muted);margin-top:16px">스킬 전체(179개)는 따로 정리한 <a href="skills.html"><b>스킬 라이브러리</b></a> 페이지에서 검색할 수 있다.</p>
+  </div>
+</section>
+
+<!-- ══════════ 허브 & 스포크 ══════════ -->
+<section>
+  <div class="wrap">
+    <p class="eyebrow">작업은 어디로 가나 — 허브 &amp; 스포크</p>
+    <h2>던지면 알아서 제 자리로 간다</h2>
+    <p class="lead">여러 프로젝트가 유동적으로 엮여 있어서, "이 항목이 무엇이고 어디로 갈지" 판단하는 층이 하나 필요했다. 그게 <b>hub(관제소)</b>다. 코드는 0줄 — 분류하고 라우팅하고 기록만 한다. 실제 작업은 목적지 프로젝트의 정본 세션에서. <b>전부 사람 확인, 자동 실행 없음.</b></p>
+
+    <figure>
+      <svg class="dia" viewBox="0 0 760 300" role="img" aria-label="허브 앤 스포크 라우팅: 사람이 할일·콘텐츠·작업을 허브에 던지면, 허브가 분류해 개인할일은 Todoist로, 콘텐츠는 research 검증 스포크로, 프로젝트 작업은 정본 루트로, 미분류는 Inbox로 라우팅한다. research는 roadmap의 피더다">
+        <!-- 입력 -->
+        <rect x="16" y="120" width="130" height="58" rx="9" fill="none" stroke="var(--human)" stroke-width="1.8"/>
+        <text x="81" y="143" text-anchor="middle" font-size="12.5" font-weight="600" fill="var(--human)">사람이 던짐</text>
+        <text x="81" y="159" text-anchor="middle" font-size="10" fill="var(--muted)">할일·콘텐츠</text>
+        <text x="81" y="172" text-anchor="middle" font-size="10" fill="var(--muted)">·작업 요청</text>
+
+        <path d="M146 149 H228" stroke="currentColor" stroke-width="1.6" marker-end="url(#h0)"/>
+        <text x="187" y="140" text-anchor="middle" font-size="9.5" fill="var(--muted)">단일 진입점</text>
+        <text x="187" y="164" text-anchor="middle" font-size="9" fill="var(--faint)">(선택적)</text>
+
+        <!-- 허브 -->
+        <rect x="228" y="110" width="150" height="80" rx="11" fill="var(--claude-soft)" stroke="var(--claude)" stroke-width="2"/>
+        <text x="303" y="138" text-anchor="middle" font-size="14" font-weight="700" fill="var(--claude)">hub 관제소</text>
+        <text x="303" y="156" text-anchor="middle" font-size="10" fill="currentColor">분류·라우팅·기록만</text>
+        <text x="303" y="170" text-anchor="middle" font-size="10" fill="currentColor">코드 0줄</text>
+        <text x="303" y="183" text-anchor="middle" font-size="9.5" fill="var(--danger)">전부 확인</text>
+
+        <!-- 스포크 4개 -->
+        <path d="M378 135 C 470 135, 470 48, 556 48" stroke="var(--local)" stroke-width="1.8" fill="none" marker-end="url(#hL)"/>
+        <rect x="556" y="24" width="188" height="50" rx="9" fill="var(--local-soft)" stroke="var(--local)" stroke-width="1.6"/>
+        <text x="650" y="44" text-anchor="middle" font-size="12" font-weight="600" fill="var(--local)">todo CLI → Todoist</text>
+        <text x="650" y="60" text-anchor="middle" font-size="9.5" fill="currentColor">개인·진로 할일 캡처</text>
+
+        <path d="M378 148 H556" stroke="var(--codex)" stroke-width="1.8" fill="none" marker-end="url(#hX)"/>
+        <rect x="556" y="112" width="188" height="50" rx="9" fill="var(--codex-soft)" stroke="var(--codex)" stroke-width="1.6"/>
+        <text x="650" y="132" text-anchor="middle" font-size="12" font-weight="600" fill="var(--codex)">research 스포크</text>
+        <text x="650" y="148" text-anchor="middle" font-size="9.5" fill="currentColor">콘텐츠 검증·판정</text>
+
+        <path d="M378 163 C 470 163, 470 215, 556 215" stroke="var(--human)" stroke-width="1.8" fill="none" marker-end="url(#h0)"/>
+        <rect x="556" y="190" width="188" height="50" rx="9" fill="none" stroke="var(--human)" stroke-width="1.6"/>
+        <text x="650" y="210" text-anchor="middle" font-size="12" font-weight="600" fill="var(--human)">프로젝트 정본 루트</text>
+        <text x="650" y="226" text-anchor="middle" font-size="9.5" fill="var(--muted)">그 세션에서 실행</text>
+
+        <path d="M303 190 V250 H150" stroke="var(--faint)" stroke-width="1.5" fill="none" stroke-dasharray="4 3" marker-end="url(#hF)"/>
+        <rect x="16" y="230" width="134" height="40" rx="8" fill="none" stroke="var(--faint)" stroke-width="1.4" stroke-dasharray="4 3"/>
+        <text x="83" y="250" text-anchor="middle" font-size="10.5" fill="var(--muted)">미분류 → Inbox</text>
+        <text x="83" y="263" text-anchor="middle" font-size="9" fill="var(--faint)">2주 넘으면 삭제</text>
+
+        <!-- research → roadmap 피더 -->
+        <path d="M650 162 C 650 200, 470 200, 440 236" stroke="var(--codex)" stroke-width="1.5" fill="none" marker-end="url(#hX)"/>
+        <text x="520" y="196" text-anchor="middle" font-size="9.5" fill="var(--codex)" font-weight="600">편입 (피더)</text>
+        <rect x="300" y="236" width="150" height="46" rx="9" fill="none" stroke="var(--human)" stroke-width="1.8"/>
+        <text x="375" y="255" text-anchor="middle" font-size="12" font-weight="600" fill="var(--human)">roadmap</text>
+        <text x="375" y="270" text-anchor="middle" font-size="9.5" fill="var(--muted)">진로 준비 · 7 카테고리</text>
+
+        <defs>
+          <marker id="h0" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><polygon points="0 0, 9 4.5, 0 9" fill="var(--human)"/></marker>
+          <marker id="hL" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><polygon points="0 0, 9 4.5, 0 9" fill="var(--local)"/></marker>
+          <marker id="hX" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><polygon points="0 0, 9 4.5, 0 9" fill="var(--codex)"/></marker>
+          <marker id="hF" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><polygon points="0 0, 8 4, 0 8" fill="var(--faint)"/></marker>
+        </defs>
+      </svg>
+      <figcaption>허브는 선택적 경로 — 안 거치고 프로젝트를 직접 열어도 아무것도 안 깨진다(단일 실패점 금지).</figcaption>
+    </figure>
+
+    <div class="two" style="margin-top:26px">
+      <div>
+        <h3 style="color:var(--codex)">research — 콘텐츠를 2축으로 판정</h3>
+        <p style="font-size:0.9rem;color:var(--muted);margin-bottom:12px">인스타·유튜브·논문에서 본 걸 던지면: 학습 → 검증 → 판단 → 결정. 핵심은 <b>두 축을 독립으로</b> 본다는 것 — 한 축이라도 걸리면 살린다.</p>
+        <figure>
+          <svg class="dia" viewBox="0 0 360 212" role="img" aria-label="research 2축 판별: 콘텐츠 한 건을 진로 자산 축과 워크플로우 병합 축으로 독립 평가한다. 한 축이라도 걸리면 살리고, 둘 다 해당 없을 때만 버린다">
+            <rect x="120" y="10" width="120" height="38" rx="8" fill="var(--codex-soft)" stroke="var(--codex)" stroke-width="1.6"/>
+            <text x="180" y="33" text-anchor="middle" font-size="12" font-weight="600" fill="var(--codex)">콘텐츠 1건</text>
+            <path d="M160 48 C 120 62, 95 66, 95 82" stroke="currentColor" stroke-width="1.4" fill="none" marker-end="url(#r1)"/>
+            <path d="M200 48 C 240 62, 265 66, 265 82" stroke="currentColor" stroke-width="1.4" fill="none" marker-end="url(#r1)"/>
+
+            <rect x="18" y="82" width="154" height="56" rx="9" fill="none" stroke="var(--human)" stroke-width="1.7"/>
+            <text x="95" y="103" text-anchor="middle" font-size="11.5" font-weight="600" fill="var(--human)">축 A · 진로 자산</text>
+            <text x="95" y="119" text-anchor="middle" font-size="9.5" fill="currentColor">편입 / 보류 / 버림</text>
+            <text x="95" y="131" text-anchor="middle" font-size="9" fill="var(--muted)">→ roadmap으로</text>
+
+            <rect x="188" y="82" width="154" height="56" rx="9" fill="none" stroke="var(--claude)" stroke-width="1.7"/>
+            <text x="265" y="103" text-anchor="middle" font-size="11.5" font-weight="600" fill="var(--claude)">축 B · 워크플로우</text>
+            <text x="265" y="119" text-anchor="middle" font-size="9.5" fill="currentColor">채택 / 후보 / 불필요</text>
+            <text x="265" y="131" text-anchor="middle" font-size="9" fill="var(--muted)">→ 내 도구로</text>
+
+            <path d="M95 138 V160 H170" stroke="var(--muted)" stroke-width="1.3" fill="none"/>
+            <path d="M265 138 V160 H190" stroke="var(--muted)" stroke-width="1.3" fill="none"/>
+            <rect x="110" y="168" width="140" height="34" rx="8" fill="var(--card)" stroke="var(--line-strong)" stroke-width="1.4"/>
+            <text x="180" y="185" text-anchor="middle" font-size="10.5" font-weight="600" fill="currentColor">한 축이라도 걸리면</text>
+            <text x="180" y="197" text-anchor="middle" font-size="9.5" fill="var(--muted)">살린다 (둘 다 X여야 버림)</text>
+            <defs><marker id="r1" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><polygon points="0 0, 8 4, 0 8" fill="currentColor"/></marker></defs>
+          </svg>
+          <figcaption>소비형 도구는 진로 자산이 아니어도 워크플로우엔 채택될 수 있다 — 두 축은 별개.</figcaption>
+        </figure>
+      </div>
+      <div>
+        <h3 style="color:var(--human)">roadmap — 진로 준비 7 카테고리</h3>
+        <p style="font-size:0.9rem;color:var(--muted);margin-bottom:12px">research가 "편입" 판정한 증거·학습거리가 쌓이는 곳. 리드 포지션은 <b>AI Agent / AX 엔지니어</b>, breadth는 보안×AI, 무기는 풀스택 배포.</p>
+        <div class="chips" style="margin-bottom:14px">
+          <span class="chip">01 취업시장분석</span><span class="chip">02 학습로드맵</span><span class="chip">03 자격증·어학</span><span class="chip">04 공모전</span><span class="chip">05 대외활동</span><span class="chip">06 자소서</span><span class="chip">07 취업준비계획</span>
+        </div>
+        <div class="card-b" style="--edge:var(--local)">
+          <h3 style="font-size:0.95rem">할일은 Todoist 단일 채널 <span class="tag" style="background:var(--local-soft);color:var(--local)">ADR 0006·0007</span></h3>
+          <p>개인+진로 할일의 진실원을 Todoist로 일원화. <code>🧭 진로·취업</code> 프로젝트 안에서 섹션으로 영역 매핑. <b>actionable task</b>(동사·완료조건·기한)는 Todoist, <b>설명·장기방향·산출물</b>은 문서(roadmap)로 — 두 개의 task manager화를 막는다.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout" style="border-left-color:var(--claude);background:var(--claude-soft)">
+      <h3 style="color:var(--claude)">왜 허브는 "코드 0줄"인가</h3>
+      <p>폴더를 물리적으로 통합하자는 안은 Codex·Fable 둘 다 기각했다 — memory가 경로에 묶여 있어 이동하면 기억이 고아가 되고(개명 금지 규칙 위반), "마감 유무"라는 분류 축도 무너진다. 그래서 허브는 폴더를 옮기지 않고 <b>판단만</b> 얹는 얇은 층으로 남겼다. 자동 디스패치도 뺐다 — 오라우팅은 엉뚱한 프로젝트 기억을 오염시키고 되돌리기 어렵다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 예시 ══════════ -->
+<section>
+  <div class="wrap">
+    <p class="eyebrow">예시 — 실제로 어떻게 도나</p>
+    <h2>같은 체계, 다섯 가지 작업</h2>
+    <p class="lead">추상적인 그림이 실제로 어떻게 작동하는지, 전부 다른 성격의 작업 4개로 따라가 보자. 각 단계의 동그라미 색이 "누가 하는지"다.</p>
+
+    <!-- 예시 A -->
+    <div class="walk">
+      <h3>A. 발표자료 만들기 <span class="mini">— 마감 있는 산출물 · 로컬 아님, 품질 작업</span></h3>
+      <ol class="steps">
+        <li style="--actor:var(--human)"><span class="n">1</span><div class="st">새 프로젝트 생성<span class="by" style="background:var(--human);color:#fff">사람</span></div><div class="dt"><code>newproj kcc-2026-talk deck</code> — ASCII 이름 규칙 강제, 폴더+CLAUDE.md+AGENTS.md 골격 자동 생성</div></li>
+        <li style="--actor:var(--claude)"><span class="n">2</span><div class="st">규칙 자동 주입<span class="by" style="background:var(--claude);color:#fff">하네스</span></div><div class="dt">세션 열면 전역 규칙 + <code>domains/deck.md</code>(발표자료 형식 규칙)가 함께 주입된다</div></li>
+        <li style="--actor:var(--claude)"><span class="n">3</span><div class="st">덱 생성<span class="by" style="background:var(--claude);color:#fff">Claude</span></div><div class="dt"><code>pptx-from-layouts</code> 스킬 — 텍스트 오버레이가 아니라 템플릿의 실제 슬라이드 마스터 레이아웃으로 생성</div></li>
+        <li style="--actor:var(--codex)"><span class="n">4</span><div class="st">품질 게이트<span class="by" style="background:var(--codex);color:#fff">QA</span></div><div class="dt"><code>pptx-deck-qa</code> — 오버플로·레이아웃 적합성 점검, 문제 있으면 수정</div></li>
+        <li style="--actor:var(--danger)"><span class="n">5</span><div class="st">제출<span class="by" style="background:var(--danger);color:#fff">게이트</span></div><div class="dt">외부 제출·게시는 안전 게이트 — 사람 확인 후에만</div></li>
+      </ol>
+    </div>
+
+    <!-- 예시 B -->
+    <div class="walk">
+      <h3>B. 커밋하기 <span class="mini">— 작고 반복적 → 로컬 LLM으로 토큰 절약</span></h3>
+      <ol class="steps">
+        <li style="--actor:var(--human)"><span class="n">1</span><div class="st">스테이징<span class="by" style="background:var(--human);color:#fff">사람</span></div><div class="dt"><code>git add</code> — 무엇을 커밋할지는 사람이 정한다</div></li>
+        <li style="--actor:var(--local)"><span class="n">2</span><div class="st">메시지 초안<span class="by" style="background:var(--local);color:#fff">로컬 7B</span></div><div class="dt"><code>msg=$(gitmsg)</code> — diff를 로컬 모델이 읽고 커밋 메시지 초안 작성. Claude 토큰 0</div></li>
+        <li style="--actor:var(--human)"><span class="n">3</span><div class="st">승인<span class="by" style="background:var(--human);color:#fff">사람</span></div><div class="dt">초안 확인 → 수정하거나 그대로 <code>git commit -m "$msg"</code></div></li>
+        <li style="--actor:var(--danger)"><span class="n">4</span><div class="st">push는 게이트<span class="by" style="background:var(--danger);color:#fff">게이트</span></div><div class="dt"><code>git push</code>는 38개 ask 게이트 중 하나 — bypass 모드여도 반드시 되묻는다</div></li>
+      </ol>
+    </div>
+
+    <!-- 예시 C -->
+    <div class="walk">
+      <h3>C. 되돌리기 어려운 변경 <span class="mini">— 스키마·마이그레이션 → 그래프 검증 필수</span></h3>
+      <ol class="steps">
+        <li style="--actor:var(--human)"><span class="n">1</span><div class="st">선행 실측<span class="by" style="background:var(--human);color:#fff">사람+Claude</span></div><div class="dt">"만들기 전에" 이미 성숙한 오픈소스가 그 일을 하는지 먼저 조사(스타·최근 커밋·커버리지)</div></li>
+        <li style="--actor:var(--claude)"><span class="n">2</span><div class="st">구현<span class="by" style="background:var(--claude);color:#fff">Claude</span></div><div class="dt">설계·다중파일 변경 — 품질 작업이라 Claude가 직접</div></li>
+        <li style="--actor:var(--codex)"><span class="n">3</span><div class="st">교차검증<span class="by" style="background:var(--codex);color:#fff">Codex</span></div><div class="dt"><code>graph-verify.sh &lt;경로&gt; "검증 주장"</code> — Codex가 read-only로 "반박". 지적 시 고치고 재검증, 최대 2회</div></li>
+        <li style="--actor:var(--human)"><span class="n">4</span><div class="st">실측 후 판정<span class="by" style="background:var(--human);color:#fff">사람</span></div><div class="dt">검증 가능한 지적은 동의 전에 직접 측정 → 수용·기각을 문서에 표로</div></li>
+        <li style="--actor:var(--human)"><span class="n">5</span><div class="st">기록<span class="by" style="background:var(--human);color:#fff">기록</span></div><div class="dt">되돌리기 어려운 결정이면 <code>~/Ops/adr/</code>에 — 무엇을 정했나 / 무엇을 버렸나 / 왜</div></li>
+      </ol>
+    </div>
+
+    <!-- 예시 D -->
+    <div class="walk">
+      <h3>D. 친구 사이트 보안점검 <span class="mini">— 범위 · 관찰 · 한계</span></h3>
+      <ol class="steps">
+        <li style="--actor:var(--human)"><span class="n">1</span><div class="st">범위 먼저<span class="by" style="background:var(--human);color:#fff">사람</span></div><div class="dt">친구의 운영 서버 → 공격형 테스트는 배제, 비침투 수동 점검으로 한정(권한 없는 공격은 안 함)</div></li>
+        <li style="--actor:var(--claude)"><span class="n">2</span><div class="st">관찰<span class="by" style="background:var(--claude);color:#fff">Claude</span></div><div class="dt">헤더·TLS·노출 경로 점검. SPA라 모든 경로가 200 → <b>거짓양성</b> 걸러냄(자동 스캐너의 함정)</div></li>
+        <li style="--actor:var(--claude)"><span class="n">3</span><div class="st">실제 위험 발견<span class="by" style="background:var(--claude);color:#fff">Claude</span></div><div class="dt">자동 스캐너가 못 잡는 <b>설계 수준 위험</b>을 1순위로 분류 — 세부는 당사자에게만 전달</div></li>
+        <li style="--actor:var(--human)"><span class="n">4</span><div class="st">한계 명시<span class="by" style="background:var(--human);color:#fff">정직</span></div><div class="dt">블랙박스로 못 보는 것(인젝션·역직렬화·권한 정책)은 "소스 봐야 함"으로 분리 — 자기검토를 검증으로 포장 안 함</div></li>
+      </ol>
+    </div>
+
+    <!-- 예시 E -->
+    <div class="walk">
+      <h3>E. 인스타에서 본 콘텐츠 처리 <span class="mini">— 허브 → research → roadmap</span></h3>
+      <ol class="steps">
+        <li style="--actor:var(--human)"><span class="n">1</span><div class="st">던지기<span class="by" style="background:var(--human);color:#fff">사람</span></div><div class="dt">"이 영상 취업에 도움될까?" — hub 관제소에 링크를 던진다</div></li>
+        <li style="--actor:var(--claude)"><span class="n">2</span><div class="st">분류·라우팅<span class="by" style="background:var(--claude);color:#fff">hub</span></div><div class="dt">콘텐츠 유형 → <code>research</code> 정본 세션으로 디스패치(확인 후). <code>dispatch-log.md</code>에 한 줄</div></li>
+        <li style="--actor:var(--codex)"><span class="n">3</span><div class="st">검증·2축 판정<span class="by" style="background:var(--codex);color:#fff">research</span></div><div class="dt">학습→사실 검증(강한 주장일수록 1차 출처까지)→ 축A 진로자산 / 축B 워크플로우 독립 판정 → <code>log.md</code> 카드</div></li>
+        <li style="--actor:var(--human)"><span class="n">4</span><div class="st">편입<span class="by" style="background:var(--human);color:#fff">roadmap</span></div><div class="dt">"편입"이면 7개 카테고리 중 어디로 갈지까지 명시. 실행 단위가 생기면 Todoist로, 설명·방향은 roadmap 문서로</div></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 원칙 ══════════ -->
+<section>
+  <div class="wrap">
+    <p class="eyebrow">왜 이렇게 짰나</p>
+    <h2>체계를 떠받치는 4개의 원칙</h2>
+    <div class="cards">
+      <div class="card-b" style="--edge:var(--codex)">
+        <h3>① 검증은 다른 벤더로</h3>
+        <p>같은 벤더 모델끼리는 편향을 공유한다. 자기검토는 검증이 아니다. 그래서 되돌리기 어려운 건 Codex(OpenAI)로 "반박"받는다.</p>
+      </div>
+      <div class="card-b" style="--edge:var(--human)">
+        <h3>② 만들기 전에 실측</h3>
+        <p>"이거 만들까"를 판정하기 전에 성숙한 오픈소스가 이미 하는지 조사. 있으면 순수 재구현은 델타 없음 → 포크+델타로만 자산이 된다.</p>
+      </div>
+      <div class="card-b" style="--edge:var(--danger)">
+        <h3>③ 위험 전환에만 게이트</h3>
+        <p>결제·삭제·외부 발송·게시·권한 변경 — 여기서만 사람 확인. 모든 노드에 승인을 넣으면 흐름만 막힌다. 고위험 지점에만.</p>
+      </div>
+      <div class="card-b" style="--edge:var(--claude)">
+        <h3>④ 경로가 곧 정체성</h3>
+        <p>memory가 폴더 경로에 묶여 있다. 그래서 폴더명은 생성 시 확정, 개명 금지. 세션은 항상 프로젝트 루트에서 — 서브폴더에서 열면 기억이 갈라진다.</p>
+      </div>
+    </div>
+
+    <div class="callout" style="border-left-color:var(--codex);background:var(--codex-soft)">
+      <h3 style="color:var(--codex)">한 문장 요약</h3>
+      <p>사람은 <b>무엇을·왜</b>만 정하고 위험 지점에서만 개입한다. 작은 일은 로컬이, 품질은 Claude가, 검증은 Codex가 맡는다. 규칙은 외우지 않고 주입되며, 한 일은 저절로 기억된다 — 그래서 혼자서도 여러 대가 돌아간다.</p>
+    </div>
+  </div>
+</section>
+
+</div><!-- /tab-flow -->
+
+<!-- ══════════ 스킬 · 플러그인 패널 ══════════ -->
+<div class="panel" id="tab-skills" role="tabpanel" aria-labelledby="t-skills" hidden>
+  <section style="border-top:none">
+    <div class="wrap">
+      <p class="eyebrow">L4 — 능력 상세</p>
+      <h2>플러그인 번들 10개</h2>
+      <p class="lead">플러그인은 "작업 방식"을 묶은 번들이다. 각 번들이 수십 개의 스킬을 담는다. 규칙 문서(domains)는 자동 주입되지만, 형식·기능 스킬은 필요할 때 <code>/스킬명</code>으로 명시 호출한다(일부 superpowers·gstack은 설명에 따라 자동 발동).</p>
+      <div class="plug-grid" id="plug-grid"></div>
+    </div>
+  </section>
+
+  <section style="border-top:none;padding-top:0">
+    <div class="wrap">
+      <h2 style="margin-bottom:4px">스킬 전체 목록</h2>
+      <p class="lead" style="margin-bottom:0">이번 세션에 로드된 스킬을 묶음별로. 검색으로 이름·설명·묶음을 한번에 거른다.</p>
+      <div class="skill-search">
+        <div class="row">
+          <input id="sq" type="search" placeholder="스킬 검색 — 예: pptx, 보안, vercel, 디버깅" autocomplete="off" aria-label="스킬 검색">
+          <span id="scount"></span>
+        </div>
+      </div>
+      <div id="skill-root"></div>
+      <p class="skill-empty" id="skill-empty">일치하는 스킬이 없습니다.</p>
+    </div>
+  </section>
+</div><!-- /tab-skills -->
+
+<footer>
+  <div class="wrap">
+    김종건 · 순천향대 컴퓨터소프트웨어공학과 · 개인 AI 운용 체계 (2026-10 기준) · 수치는 현재 설정 실측값
+  </div>
+</footer>
+
+<script>
+  // ── 플러그인 상세 ──
+  const PLUGINS = [
+    ["gstack","개발 전주기","claude","스펙→디버깅→QA→리뷰→ship→배포까지 한 스위트. 디자인 QA·실브라우저 자동화·iOS·역할별 플랜 리뷰까지 포함한 가장 큰 번들.","ship · investigate · qa · review · design-review"],
+    ["superpowers","작업 프로세스","claude","\"어떻게 일할지\"를 정하는 프레임워크. 창작·버그수정 전에 먼저 발동해 접근법을 세운다.","brainstorming · test-driven-development · systematic-debugging"],
+    ["codex","교차검증","codex","OpenAI Codex CLI 래퍼. 다른 벤더로 조사·수정·적대적 리뷰를 위임한다. 되돌리기 어려운 변경의 검증 담당.","rescue · setup · codex-cli-runtime"],
+    ["static-analysis","정적분석","danger","CodeQL·Semgrep으로 코드 취약점을 스캔하고 SARIF로 병합. 승인 게이트 있는 버전과 없는 버전.","semgrep · codeql · sarif-parsing"],
+    ["kesekit","KISA 보안","danger","주요정보통신기반시설·AI·로봇·우주·제로트러스트 취약점 평가와 하드닝 스크립트 생성(한/영).","kesekit-start-ko · kesekit-fix · kesekit-check"],
+    ["humanize-korean","한글 윤문","human","AI가 쓴 한글의 'AI 티' 70개 패턴을 탐지해 사람 글처럼. 내용은 안 건드린다. 격식체 전용 버전 별도.","humanize-korean · humanize-korean-formal"],
+    ["anthropic-skills","문서·오피스","codex","PPTX·DOCX·XLSX·PDF·docs 생성·편집, 딥리서치, 구글 워크스페이스 연동 등 사무 작업 번들.","pptx · xlsx · docx · deep-research"],
+    ["vercel","배포·프레임워크","codex","Vercel 배포·환경·상태 명령 + Next.js·AI SDK·캐싱 등 레퍼런스 스킬 40여 개.","deploy · nextjs · ai-sdk"],
+    ["frontend-design","UI 디자인","human","새 UI를 만들거나 다듬을 때 템플릿처럼 안 보이게 하는 독창적 비주얼 방향 가이드.","frontend-design"],
+    ["watch","영상","local","영상(URL·로컬)을 받아 프레임 추출·자막으로 내용을 이해하고 Q&A한다.","watch"],
+  ];
+
+  // ── 스킬 전체 ──
+  const DATA = [
+    { cat: "핵심 / 빌트인", ns: "claude-code", note: "Claude Code 기본 제공. 설정·리뷰·아티팩트·반복 작업.",
+      items: [
+        ["code-review","현재 diff·PR·브랜치를 버그 중심으로 리뷰 (effort 조절)"],["simplify","변경된 코드의 재사용·단순화·효율 정리 (버그 탐색 X)"],
+        ["security-review","보안 관점 코드 리뷰"],["init","CLAUDE.md 초기 생성 (코드베이스 문서화)"],
+        ["run","프로젝트 앱을 실제로 띄워 변경 확인·스크린샷"],["loop","프롬프트·슬래시 명령을 주기적으로 반복 실행"],
+        ["schedule","cron으로 도는 클라우드 에이전트(루틴) 관리"],["update-config","settings.json 설정·권한·훅·환경변수 구성"],
+        ["keybindings-help","키보드 단축키 커스터마이즈"],["fewer-permission-prompts","트랜스크립트 분석해 권한 허용목록 자동 추가"],
+        ["claude-api","Claude API·SDK 레퍼런스 (모델 id·가격·캐싱 등)"],["plugin-authoring","Claude Code용 플러그인(훅·패널·상태줄) 작성"],
+        ["dataviz","차트·그래프·대시보드 만들기 전 필수 디자인 가이드"],["artifact-design","아티팩트 작성 전 디자인 기본·페이지 계약"],
+        ["artifact-diagramming","아티팩트용 다이어그램 작도 know-how"],["artifact-capabilities","게시된 아티팩트의 런타임 기능(DB·상태 공유 등)"],
+        ["frontend-design","새 UI 만들 때 독창적·의도적 비주얼 디자인 가이드"],["web-design-guidelines","UI 코드의 접근성·폼·모션 가이드라인 점검"],
+        ["workflow-authoring","멀티에이전트 Workflow 스크립트 작성 레퍼런스"],
+      ]},
+    { cat: "gstack — 개발 워크플로우", ns: "gstack", note: "코딩·배포·QA·리뷰 전주기를 덮는 대형 스위트.",
+      items: [
+        ["gstack","gstack 스위트 라우터"],["_gstack-command","gstack 스위트 라우터 (명령형)"],["cso","보안 감사 — 정적 탐지 + 재현·수정 후보"],
+        ["setup-gbrain","gbrain(코드 기억) CLI·MCP 설치·초기화"],["sync-gbrain","gbrain을 레포 최신 상태로 동기화"],["spec","모호한 의도를 5단계로 실행 가능한 스펙으로"],["investigate","근본원인 추적형 체계적 디버깅"],
+        ["qa","브라우저·API·CLI·잡·워커·웹훅 버그 수정"],["qa-only","같은 버그를 수정 없이 보고만"],["review","랜딩 전 PR 리뷰"],
+        ["ship","테스트·diff 리뷰·버전업·CHANGELOG·커밋·푸시·PR"],["land-and-deploy","랜드 & 배포 워크플로우"],["setup-deploy","/land-and-deploy용 배포 설정 구성"],
+        ["canary","배포 후 카나리 모니터링"],["benchmark","성능 회귀 탐지"],["benchmark-models","gstack 스킬 교차모델 벤치마크"],
+        ["health","코드 품질 대시보드"],["retro","주간 엔지니어링 회고"],["test-audit","저가치·중복 테스트와 유지되는 테스트전용 코드 탐색"],
+        ["document-generate","기능·모듈·프로젝트 문서 신규 생성"],["document-release","릴리스 문서 감사"],["make-pdf","마크다운을 출판 품질 PDF로"],
+        ["diagram","영어 설명→다이어그램 (excalidraw·SVG·PNG)"],["deslop-shared-libs","최근 작업에서 공유코드 추출 후보 탐색"],
+        ["careful","파괴적 명령 안전 가드레일"],["guard","풀 안전모드 (파괴 경고 + 디렉터리 편집 제한)"],
+        ["freeze","세션 동안 특정 디렉터리로만 편집 제한"],["unfreeze","freeze 경계 해제"],
+        ["context-save","작업 컨텍스트 저장"],["context-restore","저장한 컨텍스트 복원"],["learn","프로젝트 학습사항 관리"],
+        ["office-hours","YC 오피스아워 (2모드)"],["gstack-upgrade","gstack 최신 버전 업그레이드"],
+      ]},
+    { cat: "gstack — 디자인·브라우저", ns: "gstack", note: "디자인 QA·컨설팅·실브라우저 자동화.",
+      items: [
+        ["design-consultation","제품 이해→디자인 시스템 제안→폰트·색 프리뷰"],["design-html","Pretext 네이티브 HTML/CSS 최종 생성"],
+        ["design-review","디자이너 시선 QA (불일치·AI 슬롭 탐지·수정)"],["design-shotgun","AI 디자인 변형 다수 생성·비교보드·피드백"],
+        ["browse","Aside로 실제 브라우저 조작 (열기·클릭·스샷·콘솔)"],["scrape","로그인된 세션으로 웹페이지 데이터 추출"],
+        ["skillify","최근 성공한 /scrape 흐름을 영구 브라우저 스킬로"],["connect-chrome","GStack 브라우저(사이드바 확장 내장) 실행"],
+        ["open-gstack-browser","GStack 브라우저 실행 (별칭)"],["setup-browser-cookies","실 브라우저 쿠키를 헤드리스 세션으로"],
+        ["pair-agent","원격 AI 에이전트를 내 브라우저와 페어링"],
+      ]},
+    { cat: "gstack — iOS", ns: "gstack", note: "SwiftUI 앱 실기기 QA·디버그 브리지.",
+      items: [
+        ["ios-qa","실기기 iOS QA (SwiftUI)"],["ios-fix","자율 iOS 버그 수정기"],["ios-design-review","실기기 iOS 비주얼 디자인 감사"],
+        ["ios-sync","디버그 브리지를 상위 gstack 템플릿에 재생성"],["ios-clean","DebugBridge SPM 패키지·#if DEBUG 배선 제거"],
+      ]},
+    { cat: "gstack — 플랜 리뷰", ns: "gstack", note: "실행 전 플랜을 역할별 시선으로 점검.",
+      items: [
+        ["autoplan","CEO·디자인·엔지니어·DX 리뷰를 순차 자동 실행"],["plan-ceo-review","창업자 모드 플랜 리뷰"],["plan-eng-review","엔지니어링 매니저 모드 플랜 리뷰"],
+        ["plan-design-review","디자이너 시선 플랜 리뷰 (대화형)"],["plan-devex-review","개발자경험 플랜 리뷰 (대화형)"],["devex-review","라이브 개발자경험 감사"],
+        ["landing-report","워크스페이스 인식 ship 큐 대시보드 (읽기전용)"],["plan-tune","질문 민감도·개발자 심리 자가튜닝"],
+      ]},
+    { cat: "Superpowers — 프로세스", ns: "superpowers", note: "브레인스토밍·TDD·디버깅 등 작업 방식 프레임워크.",
+      items: [
+        ["using-superpowers","스킬 찾고 쓰는 법 — 모든 대화 시작 시"],["brainstorming","기능·컴포넌트 만들기 전 의도·요구·설계 탐색"],
+        ["systematic-debugging","버그·테스트실패 시 수정 제안 전 체계적 디버깅"],["test-driven-development","구현 전 TDD로 기능·버그픽스"],
+        ["writing-plans","멀티스텝 작업 스펙을 플랜으로 (코드 전)"],["executing-plans","현 세션에서 직접 플랜 실행"],
+        ["subagent-driven-development","독립 작업 플랜을 서브에이전트로 실행"],["dispatching-parallel-agents","병렬 에이전트 디스패치"],
+        ["requesting-code-review","코드 리뷰 요청"],["receiving-code-review","코드 리뷰 피드백 수용 (검증 우선)"],
+        ["verification-before-completion","완료 선언 전 검증"],["finishing-a-development-branch","구현 완료 후 통합 방식 결정"],
+        ["using-git-worktrees","격리 작업공간 확보 (worktree)"],["writing-skills","스킬 생성·편집·검증"],["diagnosing-superpowers","superpowers 진단"],
+      ]},
+    { cat: "humanize-korean — 한글 윤문", ns: "humanize-korean", note: "AI가 쓴 한글의 'AI 티'를 사람 글처럼. 내용 보존.",
+      items: [
+        ["humanize-korean","AI 티 10대 패턴 탐지·분류·자연스러운 한국어 재작성"],["humanize-korean-formal","보고서·공문서·논문 격식체 — 비유·구어·1인칭 정리"],
+      ]},
+    { cat: "kesekit — KISA 보안점검", ns: "kesekit", note: "기반시설·AI·로봇·우주·제로트러스트 평가.",
+      items: [
+        ["kesekit-start","KISA 기반 보안 취약점 분석평가 (영문 트리거)"],["kesekit-start-ko","KISA 기반 보안 취약점 분석평가 (한글)"],
+        ["kesekit-check","배포 전 보안 컴플라이언스 체크리스트"],["kesekit-check-ko","배포 전 컴플라이언스 체크 (한글)"],
+        ["kesekit-fix","취약점 자동 수정·하드닝 스크립트 생성"],["kesekit-fix-ko","취약점 수정·하드닝 (한글)"],
+        ["kesekit-guide","kesekit 가이드"],["kesekit-guide-ko","kesekit 가이드 (한글)"],
+      ]},
+    { cat: "정적분석 (static-analysis)", ns: "static-analysis", note: "CodeQL·Semgrep 스캔.",
+      items: [
+        ["semgrep","Semgrep 보안 스캔 (룰셋 승인 게이트 포함)"],["semgrep-scan","Semgrep 스캔 엔드투엔드 (승인 없이)"],
+        ["codeql","CodeQL 분석"],["codeql-build","CodeQL 데이터베이스 빌드 (빌드법 사다리)"],["sarif-parsing","SARIF 결과 파싱"],
+      ]},
+    { cat: "codex — OpenAI 교차검증", ns: "codex", note: "다른 벤더(Codex)로 조사·수정·검증 위임.",
+      items: [
+        ["codex","OpenAI Codex CLI 래퍼 (3모드)"],["rescue","조사·수정·후속 작업을 Codex 서브에이전트로 위임"],
+        ["setup","로컬 Codex CLI 준비 확인·리뷰 게이트 토글"],["codex-cli-runtime","codex-companion 런타임 호출 계약"],
+        ["codex-result-handling","Codex 결과 처리"],["gpt-5-4-prompting","GPT 프롬프팅 가이드"],
+      ]},
+    { cat: "문서·오피스 (anthropic-skills)", ns: "anthropic-skills", note: "PPTX·DOCX·XLSX·PDF·docs 생성·편집.",
+      items: [
+        ["docs","공유·편집·코멘트 가능한 문서 (기본 문서 타입)"],["docx","Word 문서 생성·편집"],["pptx","PowerPoint 생성·편집"],
+        ["xlsx","스프레드시트 열기·편집·생성·변환"],["pdf","PDF 작업"],["likelion-pptx","라이언 PPTX"],["wrtn-pptx","뤼튼 PPTX"],
+        ["wrtn-pptx-visualize","뤼튼 PPTX 시각화"],["wrtn-pptx-aitext-fix","뤼튼 PPTX AI텍스트 교정"],["skill-creator","새 스킬 생성 도우미"],
+        ["import-memory","메모리 임포트"],["deep-research","심층 리서치"],["google-workspace","구글 워크스페이스 연동"],
+        ["email-translate","이메일 번역"],["wiki-conversation","위키 대화"],["morning","모닝 브리핑"],
+        ["built-in-browser","빌트인 브라우저"],["chrome-browser","크롬 브라우저 제어"],["computer-use","컴퓨터 유즈 (GUI 제어)"],
+      ]},
+    { cat: "문서 형식 전용 (pptx·hwpx)", ns: "—", note: "템플릿 레이아웃 기반 덱 · 한글(.hwpx) 안전 편집.",
+      items: [
+        ["pptx-from-layouts","마크다운 아웃라인→실 슬라이드마스터 레이아웃 덱"],["academic-pptx-skill","학술 발표(학회·논문심사·세미나) 내용·구조 설계"],["hwpx-edit",".hwpx(한글) 손상 없이 편집 — 메모·수식·글자수"],
+      ]},
+    { cat: "Vercel — 명령·셋업", ns: "vercel", note: "배포·환경·상태·부트스트랩.",
+      items: [
+        ["bootstrap","레포를 Vercel 리소스에 연결·프리플라이트"],["deploy","배포"],["env","환경변수"],["status","현재 Vercel 프로젝트 상태"],["verification","검증"],
+      ]},
+    { cat: "Vercel — 레퍼런스", ns: "vercel", note: "프레임워크·AI·인프라 문서 스킬 (필요 시 로드).",
+      items: [
+        ["nextjs","Next.js"],["next-upgrade","Next.js 업그레이드"],["next-forge","next-forge"],["next-cache-components","Next 캐시 컴포넌트"],
+        ["react-best-practices","React 베스트 프랙티스"],["ai-sdk","AI SDK"],["ai-gateway","AI Gateway"],
+        ["build-agents","에이전트 빌드"],["vercel-agent","Vercel 에이전트"],["chat-sdk","Chat SDK"],["auth","인증"],["create-a-backend","백엔드 생성"],
+        ["vercel-functions","Vercel Functions"],["vercel-storage","Vercel 스토리지"],["vercel-sandbox","Vercel 샌드박스"],["vercel-firewall","방화벽"],
+        ["vercel-cli","Vercel CLI"],["vercel-connect","Vercel Connect"],["vercel-services","Vercel 서비스"],["cdn-caching","CDN 캐싱"],
+        ["runtime-cache","런타임 캐시"],["routing-middleware","라우팅·미들웨어"],["microfrontends","마이크로프론트엔드"],["flags-sdk","Flags SDK"],
+        ["queues","큐"],["workflow","워크플로우"],["marketplace","마켓플레이스"],["custom-metrics","커스텀 메트릭"],["env-vars","환경변수(레퍼런스)"],
+        ["deployments-cicd","배포·CI/CD"],["access-protected-vercel-deployment","보호된 배포 접근"],["turbopack","Turbopack"],["shadcn","shadcn"],
+        ["eve","eve"],["knowledge-update","지식 업데이트"],
+      ]},
+    { cat: "Orca — 멀티에이전트·GUI", ns: "orca", note: "worktree·터미널·임베디드 브라우저·오케스트레이션.",
+      items: [
+        ["orca-cli","Orca worktree·터미널·브라우저·아티팩트 조작"],["orchestration","감독형 Orca 워커 조정 (스레드·DAG·게이트)"],
+        ["computer-use","보이는 로컬 앱 창 GUI 제어 (접근성 트리·클릭)"],
+      ]},
+    { cat: "미디어", ns: "—", note: "영상 이해(watch 플러그인) · 이미지 생성(로컬 gptimg).",
+      items: [["watch","영상(URL·로컬) 다운·프레임 추출·자막으로 내용 Q&A"],["gpt-image","웹 작업 중 AI 이미지 생성 제안 (로컬 gptimg, 승인 후)"]]},
+  ];
+
+  const NSCOLOR = { "claude-code":"--claude","gstack":"--claude","superpowers":"--claude","humanize-korean":"--human",
+    "kesekit":"--danger","static-analysis":"--danger","codex":"--codex","anthropic-skills":"--codex","vercel":"--codex",
+    "orca":"--local","watch":"--local","—":"--line-strong" };
+
+  // 플러그인 렌더
+  const pg = document.getElementById("plug-grid");
+  PLUGINS.forEach(([ns,role,color,desc,key]) => {
+    const d = document.createElement("div");
+    d.className = "plug"; d.style.setProperty("--edge", "var(--"+color+")");
+    d.innerHTML = `<div class="role">${role}</div><h4>${ns}</h4><p>${desc}</p><div class="key">대표 · <b>${key}</b></div>`;
+    pg.appendChild(d);
+  });
+
+  // 스킬 렌더
+  const root = document.getElementById("skill-root");
+  let total = 0;
+  DATA.forEach(c => {
+    total += c.items.length;
+    const sec = document.createElement("section");
+    sec.className = "skill-cat";
+    sec.style.setProperty("--edge", "var("+(NSCOLOR[c.ns]||"--line-strong")+")");
+    const nsTag = c.ns && c.ns !== "—" ? `<span class="ns">${c.ns}</span>` : "";
+    sec.innerHTML = `<div class="skill-cat-head"><h3>${c.cat}</h3>${nsTag}<span class="cnt">${c.items.length}</span></div>`
+      + (c.note ? `<p class="skill-cat-note">${c.note}</p>` : "") + `<div class="skill-grid"></div>`;
+    const grid = sec.querySelector(".skill-grid");
+    c.items.forEach(([name,desc]) => {
+      const el = document.createElement("div");
+      el.className = "skill-card";
+      el.dataset.search = (name+" "+desc+" "+c.cat+" "+c.ns).toLowerCase();
+      el.dataset.name = name; el.dataset.desc = desc;
+      el.innerHTML = `<div class="sn"><span class="slash">/</span><span class="nm">${name}</span></div><div class="sd">${desc}</div>`;
+      grid.appendChild(el);
+    });
+    root.appendChild(sec);
+  });
+  document.getElementById("tab-skill-count").textContent = total;
+
+  // 검색
+  const sq = document.getElementById("sq"), scount = document.getElementById("scount"), sempty = document.getElementById("skill-empty");
+  function esc(s){ return s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"); }
+  function hl(el, term){
+    const nm = el.dataset.name, ds = el.dataset.desc;
+    if(!term){ el.querySelector(".nm").textContent = nm; el.querySelector(".sd").textContent = ds; return; }
+    const re = new RegExp("("+esc(term)+")","ig");
+    el.querySelector(".nm").innerHTML = nm.replace(re,"<mark>$1</mark>");
+    el.querySelector(".sd").innerHTML = ds.replace(re,"<mark>$1</mark>");
+  }
+  function filter(){
+    const term = (sq.value||"").trim().toLowerCase();
+    let vis = 0;
+    document.querySelectorAll(".skill-cat").forEach(sec => {
+      let sv = 0;
+      sec.querySelectorAll(".skill-card").forEach(el => {
+        const m = !term || el.dataset.search.includes(term);
+        el.hidden = !m; if(m){ sv++; vis++; hl(el, term); }
+      });
+      sec.hidden = sv === 0;
+    });
+    sempty.style.display = vis === 0 ? "block" : "none";
+    scount.textContent = term ? vis+"개 표시" : total+"개";
+  }
+  sq.addEventListener("input", filter);
+  scount.textContent = total+"개";
+
+  // 탭 전환
+  const tabs = { flow: [document.getElementById("t-flow"), document.getElementById("tab-flow")],
+                 skills: [document.getElementById("t-skills"), document.getElementById("tab-skills")] };
+  function show(which){
+    Object.entries(tabs).forEach(([k,[btn,panel]]) => {
+      const on = k === which;
+      btn.setAttribute("aria-selected", on ? "true" : "false");
+      panel.hidden = !on;
+    });
+    try { history.replaceState(null,"", which === "skills" ? "#skills" : "#flow"); } catch(e){}
+    window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
+  }
+  tabs.flow[0].addEventListener("click", () => show("flow"));
+  tabs.skills[0].addEventListener("click", () => show("skills"));
+  if ((location.hash||"").toLowerCase().includes("skill")) show("skills");
+</script>
+
+</body>
+</html>
